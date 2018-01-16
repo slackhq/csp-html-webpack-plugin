@@ -1,0 +1,43 @@
+{
+  "name": "csp-html-webpack-plugin",
+  "version": "1.0.0",
+  "description": "A plugin which, when combined with HTMLWebpackPlugin, adds CSP tags to the HTML output",
+  "main": "plugin.js",
+  "scripts": {
+    "eslint": "eslint .",
+    "eslint-fix": "eslint . --fix",
+    "test": "jasmine ./spec/plugin.spec.js"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@slack-github.com:anuj/csp-html-webpack-plugin.git"
+  },
+  "keywords": [
+    "webpack",
+    "csp",
+    "plugin",
+    "html"
+  ],
+  "author": "Anuj Nair",
+  "license": "MIT",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.2",
+    "lodash": "^4.17.4"
+  },
+  "peerDependencies": {
+    "webpack": "^2 || ^3",
+    "html-webpack-plugin": "^2"
+  },
+  "devDependencies": {
+    "eslint": "^4.15.0",
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-config-prettier": "^2.9.0",
+    "eslint-plugin-import": "^2.8.0",
+    "eslint-plugin-prettier": "^2.4.0",
+    "html-webpack-plugin": "^2.30.1",
+    "jasmine": "^2.8.0",
+    "prettier": "^1.10.1",
+    "rimraf": "^2.6.2",
+    "webpack": "^3.10.0"
+  }
+}
