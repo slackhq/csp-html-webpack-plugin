@@ -19,16 +19,14 @@ Install the plugin with npm:
 npm i --save-dev csp-html-webpack-plugin
 ```
 
-## Usage
+## Basic Usage
 
 In the plugins section of your webpack config file, include the following:
 
 ```
-new HtmlWebpackPlugin({ ... })
-new CspHtmlWebpackPlugin({ ... }, { ... })
+new HtmlWebpackPlugin()
+new CspHtmlWebpackPlugin()
 ```
-
-where `{ ... }` are config options filled for both plugins
 
 Finally, add the following tag to your HTML template where you would like to add the CSP policy:
 ```
@@ -37,10 +35,13 @@ Finally, add the following tag to your HTML template where you would like to add
 
 ## Configuration
 
-This plugin accepts 2 params with the following structure:
+This `CspHtmlWebpackPlugin` accepts 2 params with the following structure:
 * {object} Policy (optional) - a flat object which defines your CSP policy. Valid keys and values can be found on the [MDN CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy) page. Values can either be a string or an array of strings.
 * {object} Additional Options (optional) - a flat object with the optional configuration options:
   * {string} hashingMethod - accepts 'sha256', 'sha384', 'sha512' - your node version must also accept this hashing method.
+
+This plugin also adds another option to the `HtmlWebpackPlugin`
+* {RegExp} cspAssetRegex (optional) - if defined, only assets which match the regex will be hashed and added to the policy. Dependencies of these assets will also be added to the policy regardless of whether they match the regex or not.
 
 #### Default Policy:
 
@@ -59,6 +60,21 @@ This plugin accepts 2 params with the following structure:
 {
   hashingMethod: 'sha256'
 }
+```
+
+#### Full Configuration with all options:
+```
+new HtmlWebpackPlugin({
+  cspAssetRegex: /some-regex-here/
+}),
+new CspHtmlWebpackPlugin({
+  'base-uri': "'self'",
+  'object-src': "'none'",
+  'script-src': ["'unsafe-inline'", "'self'", "'unsafe-eval'"],
+  'style-src': ["'unsafe-inline'", "'self'", "'unsafe-eval'"]
+}, {
+  hashingMethod: 'sha256'
+})
 ```
 
 ## Contribution
