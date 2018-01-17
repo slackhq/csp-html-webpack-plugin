@@ -6,7 +6,8 @@
   "scripts": {
     "eslint": "eslint .",
     "eslint-fix": "eslint . --fix",
-    "test": "jasmine ./spec/plugin.spec.js"
+    "jasmine": "jasmine ./spec/plugin.spec.js",
+    "test": "npm run eslint && npm run jasmine"
   },
   "repository": {
     "type": "git",

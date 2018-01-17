@@ -171,4 +171,82 @@ describe('CspHtmlWebpackPlugin', () => {
       done
     );
   });
+
+  it('ignores chunks which are not matched by the regex in the html webpack plugin settings', done => {
+    const webpackConfig = {
+      entry: {
+        application: path.join(__dirname, 'fixtures/index.js'),
+        ignored: path.join(__dirname, 'fixtures/ignored-index.js')
+      },
+      output: {
+        path: OUTPUT_DIR,
+        filename: '[name].[chunkhash:7].bundle.js'
+      },
+      plugins: [
+        new HtmlWebpackPlugin({
+          cspAssetRegex: /application/,
+          filename: path.join(OUTPUT_DIR, 'index.html'),
+          template: path.join(__dirname, 'fixtures', 'with-nothing.html'),
+          inject: 'body'
+        }),
+        new CspHtmlWebpackPlugin()
+      ]
+    };
+
+    testCspHtmlWebpackPlugin(
+      webpackConfig,
+      'index.html',
+      (cspPolicy, doneFn) => {
+        const expected =
+          "base-uri 'self';" +
+          " object-src 'none';" +
+          " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-2uo1+jaLVcs3Is1wS2OdiUivFJq8Lpq3ety7xHM/aog=' 'sha256-wnL0JqTYMsHFvBi2ivtYlWstb/A6bHBPrMG+iws3vRo=';" +
+          " style-src 'unsafe-inline' 'self' 'unsafe-eval'";
+
+        expect(cspPolicy).toEqual(expected);
+
+        doneFn();
+      },
+      done
+    );
+  });
+
+  it('matches chunks using the regex in the html webpack plugin settings which are in separate entry points', done => {
+    const webpackConfig = {
+      entry: {
+        application: path.join(__dirname, 'fixtures/index.js'),
+        ignored: path.join(__dirname, 'fixtures/ignored-index.js')
+      },
+      output: {
+        path: OUTPUT_DIR,
+        filename: '[name].[chunkhash:7].bundle.js'
+      },
+      plugins: [
+        new HtmlWebpackPlugin({
+          cspAssetRegex: /application|ignored/,
+          filename: path.join(OUTPUT_DIR, 'index.html'),
+          template: path.join(__dirname, 'fixtures', 'with-nothing.html'),
+          inject: 'body'
+        }),
+        new CspHtmlWebpackPlugin()
+      ]
+    };
+
+    testCspHtmlWebpackPlugin(
+      webpackConfig,
+      'index.html',
+      (cspPolicy, doneFn) => {
+        const expected =
+          "base-uri 'self';" +
+          " object-src 'none';" +
+          " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-2uo1+jaLVcs3Is1wS2OdiUivFJq8Lpq3ety7xHM/aog=' 'sha256-wnL0JqTYMsHFvBi2ivtYlWstb/A6bHBPrMG+iws3vRo=' 'sha256-WtMoz0By3R+9pniLse9vDKgXC8DQG2I3GDXk+TPNdH8=';" +
+          " style-src 'unsafe-inline' 'self' 'unsafe-eval'";
+
+        expect(cspPolicy).toEqual(expected);
+
+        doneFn();
+      },
+      done
+    );
+  });
 });

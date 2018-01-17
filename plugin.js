@@ -2,6 +2,7 @@ const cheerio = require('cheerio');
 const crypto = require('crypto');
 const uniq = require('lodash/uniq');
 const compact = require('lodash/compact');
+const keyBy = require('lodash/keyBy');
 
 const defaultPolicy = {
   'base-uri': "'self'",
@@ -58,7 +59,7 @@ class CspHtmlWebpackPlugin {
   }
 
   /**
-   * Hashes a string using the hasing method we have opted for and then base64 encodes the result
+   * Hashes a string using the hashing method we have opted for and then base64 encodes the result
    * @param {string} str - the string to hash
    * @returns {string} - the returned hash with the hashing method prepended e.g. sha256-123456abcdef
    */
@@ -69,6 +70,97 @@ class CspHtmlWebpackPlugin {
       .digest('base64');
 
     return `'${this.opts.hashingMethod}-${hashed}'`;
+  }
+
+  /**
+   * Find the asset source using the filename we pass in and adds it to the hashes array under the appropriate key
+   * @param {string} filename - the filename to search for in the assets object
+   * @param {object} assets - the assets object from compilation.assets
+   */
+  addToHashesArray(filename, assets) {
+    const fileType = this.getFileType(filename);
+    const assetSource = assets[filename] && assets[filename].source();
+
+    if (assetSource && ['js', 'css'].includes(fileType)) {
+      this.hashes[fileType].push(this.hash(assetSource));
+    }
+  }
+
+  /**
+   * Process assets and it's children which match the cspAssetRegex option
+   * @param {RegExp} regex the regex to test the filenames for
+   * @param {object[]} statsJsonChunks - compilation.getStats().toJson().chunks
+   * @param compilationAssets - compilation.assets
+   */
+  processLimited(regex, statsJsonChunks, compilationAssets) {
+    const keyedChunksById = keyBy(statsJsonChunks, o => o.id);
+    const parentChildChunkRelationship = {};
+    const matchedChunkIds = [];
+    const seenChunkId = [];
+
+    statsJsonChunks.forEach(chunk => {
+      if (typeof chunk.id !== 'undefined') {
+        // add all chunks into a parent child map
+        for (let i = 0, len = chunk.parents.length; i < len; i += 1) {
+          const parent = chunk.parents[i];
+          if (!parentChildChunkRelationship[parent]) {
+            parentChildChunkRelationship[parent] = [chunk.id.toString()];
+          } else {
+            parentChildChunkRelationship[parent].push(chunk.id.toString());
+          }
+        }
+
+        // match filenames we want to hash
+        for (let i = 0, len = chunk.files.length; i < len; i += 1) {
+          if (regex.test(chunk.files[i])) {
+            matchedChunkIds.push(chunk.id);
+            return;
+          }
+        }
+      }
+    });
+
+    // recursive function to go through all chunk children and hash their sources too
+    const processChunkId = chunkId => {
+      // make sure we don't get into an infinite loop
+      if (seenChunkId.includes(chunkId)) {
+        return;
+      }
+
+      const chunk = keyedChunksById[chunkId];
+      chunk.files.forEach(filename => {
+        this.addToHashesArray(filename, compilationAssets);
+      });
+
+      if (
+        typeof parentChildChunkRelationship[chunkId] !== 'undefined' &&
+        parentChildChunkRelationship[chunkId].length > 0
+      ) {
+        for (
+          let i = 0, len = parentChildChunkRelationship[chunkId].length;
+          i < len;
+          i += 1
+        ) {
+          processChunkId(parentChildChunkRelationship[chunkId][i]);
+        }
+      }
+    };
+
+    // start the hashing
+    matchedChunkIds.forEach(chunkId => {
+      processChunkId(chunkId);
+    });
+  }
+
+  /**
+   * Process all assets since no cspAssetRegex has been set
+   * @param {object[]} statsJsonAssets - compilation.getStats().toJson().assets
+   * @param compilationAssets - compilation.assets
+   */
+  processAll(statsJsonAssets, compilationAssets) {
+    statsJsonAssets.forEach(asset => {
+      this.addToHashesArray(asset.name, compilationAssets);
+    });
   }
 
   /**
@@ -94,28 +186,23 @@ class CspHtmlWebpackPlugin {
    * @param compiler
    */
   apply(compiler) {
-    // get a list of all asset hashes separated by js and css
-    compiler.plugin('after-compile', (compilation, compileCb) => {
-      const stats = compilation.getStats().toJson();
-      const { assets } = compilation;
-
-      stats.assets.forEach(asset => {
-        const fileType = this.getFileType(asset.name);
-        const assetSource = assets[asset.name] && assets[asset.name].source();
-
-        if (assetSource && ['js', 'css'].includes(fileType)) {
-          this.hashes[fileType].push(this.hash(assetSource));
-        }
-      });
-
-      compileCb();
-    });
-
-    // get a list of inline scripts and styles, and inject the policy into the html document
     compiler.plugin('compilation', compilation => {
       compilation.plugin(
         'html-webpack-plugin-after-html-processing',
         (htmlPluginData, compileCb) => {
+          const stats = compilation.getStats().toJson();
+          const { assets } = compilation; // only way to get source
+
+          if (!htmlPluginData.plugin.options.cspAssetRegex) {
+            this.processAll(stats.assets, assets);
+          } else {
+            this.processLimited(
+              htmlPluginData.plugin.options.cspAssetRegex,
+              stats.chunks,
+              assets
+            );
+          }
+
           const $ = cheerio.load(htmlPluginData.html);
           const policyObj = JSON.parse(JSON.stringify(this.policy));
 
