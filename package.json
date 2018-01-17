@@ -4,10 +4,12 @@
   "description": "A plugin which, when combined with HTMLWebpackPlugin, adds CSP tags to the HTML output",
   "main": "plugin.js",
   "scripts": {
-    "codecov": "rm -rf ./coverage && ./node_modules/.bin/istanbul cover ./node_modules/jasmine/bin/jasmine.js spec/plugin.spec.js",
-    "codecov-upload": "./node_modules/.bin/codecov --token=252086ef-c14d-4f29-ab36-720265249fa2",
+    "codecov": "npm run codecov:clean && npm run codecov:generate && npm run codecov:upload",
+    "codecov:clean": "rm -rf ./coverage",
+    "codecov:generate": "./node_modules/.bin/istanbul cover ./node_modules/jasmine/bin/jasmine.js spec/plugin.spec.js",
+    "codecov:upload": "./node_modules/.bin/codecov --token=252086ef-c14d-4f29-ab36-720265249fa2",
     "eslint": "eslint .",
-    "eslint-fix": "eslint . --fix",
+    "eslint:fix": "eslint . --fix",
     "jasmine": "jasmine ./spec/plugin.spec.js",
     "test": "npm run eslint && npm run jasmine"
   },
