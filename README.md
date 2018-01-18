@@ -1,7 +1,8 @@
 # CSP HTML Webpack Plugin
 
-[![License](https://img.shields.io/badge/license-MIT-blue.svg)](#)
-[![Code Style](https://img.shields.io/badge/code%20style-prettier-brightgreen.svg)](#)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/slackhq/csp-html-webpack-plugin/blob/master/LICENSE)
+[![npm](https://img.shields.io/npm/v/csp-html-webpack-plugin.svg)](https://www.npmjs.com/package/csp-html-webpack-plugin)
+[![Code Style](https://img.shields.io/badge/code%20style-prettier-brightgreen.svg)](https://github.com/prettier/prettier)
 [![Build Status](https://travis-ci.org/slackhq/csp-html-webpack-plugin.svg?branch=master)](https://travis-ci.org/slackhq/csp-html-webpack-plugin)
 [![codecov](https://codecov.io/gh/slackhq/csp-html-webpack-plugin/branch/master/graph/badge.svg?token=cBemDmnz85)](https://codecov.io/gh/slackhq/csp-html-webpack-plugin)
 
