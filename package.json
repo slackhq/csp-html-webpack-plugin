@@ -1,0 +1,50 @@
+{
+  "name": "csp-html-webpack-plugin",
+  "version": "1.0.0",
+  "description": "A plugin which, when combined with HTMLWebpackPlugin, adds CSP tags to the HTML output",
+  "main": "plugin.js",
+  "scripts": {
+    "codecov": "npm run codecov:clean && npm run codecov:generate && npm run codecov:upload",
+    "codecov:clean": "rm -rf ./coverage",
+    "codecov:generate": "./node_modules/.bin/istanbul cover ./node_modules/jasmine/bin/jasmine.js spec/plugin.spec.js",
+    "codecov:upload": "./node_modules/.bin/codecov --token=252086ef-c14d-4f29-ab36-720265249fa2",
+    "eslint": "eslint .",
+    "eslint:fix": "eslint . --fix",
+    "jasmine": "jasmine ./spec/plugin.spec.js",
+    "test": "npm run eslint && npm run jasmine && npm run codecov"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@slack-github.com:anuj/csp-html-webpack-plugin.git"
+  },
+  "keywords": [
+    "webpack",
+    "csp",
+    "plugin",
+    "html"
+  ],
+  "author": "Anuj Nair",
+  "license": "MIT",
+  "dependencies": {
+    "cheerio": "^1.0.0-rc.2",
+    "lodash": "^4.17.4"
+  },
+  "peerDependencies": {
+    "webpack": "^2 || ^3",
+    "html-webpack-plugin": "^2"
+  },
+  "devDependencies": {
+    "codecov": "^3.0.0",
+    "eslint": "^4.15.0",
+    "eslint-config-airbnb-base": "^12.1.0",
+    "eslint-config-prettier": "^2.9.0",
+    "eslint-plugin-import": "^2.8.0",
+    "eslint-plugin-prettier": "^2.4.0",
+    "html-webpack-plugin": "^2.30.1",
+    "istanbul": "^0.4.5",
+    "jasmine": "^2.8.0",
+    "prettier": "^1.10.1",
+    "rimraf": "^2.6.2",
+    "webpack": "^3.10.0"
+  }
+}
