@@ -98,6 +98,8 @@ class CspHtmlWebpackPlugin {
     const matchedChunkIds = [];
     const seenChunkId = [];
 
+    let manifestChunkId = -1;
+
     statsJsonChunks.forEach(chunk => {
       if (typeof chunk.id !== 'undefined') {
         // add all chunks into a parent child map
@@ -108,6 +110,11 @@ class CspHtmlWebpackPlugin {
           } else {
             parentChildChunkRelationship[parent].push(chunk.id.toString());
           }
+        }
+
+        // if the chunk size is 0 right now, it's probably the empty manifest chunk - let's mark it as such
+        if (chunk.size === 0) {
+          manifestChunkId = chunk.id;
         }
 
         // match filenames we want to hash
@@ -132,9 +139,11 @@ class CspHtmlWebpackPlugin {
         this.addToHashesArray(filename, compilationAssets);
       });
 
+      // if we have children to iterate, and we're not currently on the manifest chunk, iterate through them
       if (
         typeof parentChildChunkRelationship[chunkId] !== 'undefined' &&
-        parentChildChunkRelationship[chunkId].length > 0
+        parentChildChunkRelationship[chunkId].length > 0 &&
+        chunkId !== manifestChunkId
       ) {
         for (
           let i = 0, len = parentChildChunkRelationship[chunkId].length;
