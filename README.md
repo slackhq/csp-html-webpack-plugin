@@ -43,6 +43,7 @@ This `CspHtmlWebpackPlugin` accepts 2 params with the following structure:
 
 This plugin also adds another option to the `HtmlWebpackPlugin`
 * `{RegExp}` cspAssetRegex (optional) - if defined, only assets which match the regex will be hashed and added to the policy. Dependencies of these assets will also be added to the policy regardless of whether they match the regex or not.
+  * Note: If you are using a manifest plugin, you should make sure your manifest asset is matched in this regex as well
 
 #### Default Policy:
 
