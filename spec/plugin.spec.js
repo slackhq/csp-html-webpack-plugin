@@ -26,14 +26,15 @@ const testCspHtmlWebpackPlugin = (
   webpack(webpackConfig, (err, stats) => {
     // test no error or warning
     expect(err).toBeFalsy();
-    expect((stats.compilation.errors || []).length).toEqual(0);
-    expect((stats.compilation.warnings || []).length).toEqual(0);
+    expect(stats.compilation.errors.length).toEqual(0);
+    expect(stats.compilation.warnings.length).toEqual(0);
 
     // test the output file has been created
     const outputFileExists = fs.existsSync(
       path.join(OUTPUT_DIR, outputFilename)
     );
     expect(outputFileExists).toBe(true);
+    /* istanbul ignore next */
     if (!outputFileExists) {
       return doneFn();
     }
@@ -48,7 +49,7 @@ const testCspHtmlWebpackPlugin = (
       'content'
     );
 
-    return callbackFn(cspPolicy, doneFn);
+    return callbackFn(cspPolicy, $, doneFn);
   });
 };
 
@@ -62,7 +63,7 @@ describe('CspHtmlWebpackPlugin', () => {
     rimraf(OUTPUT_DIR, done);
   });
 
-  it('inserts the default policy, including sha-256 hashes of other scripts found', done => {
+  it('inserts the default policy, including sha-256 hashes of other inline scripts found', done => {
     const webpackConfig = {
       entry: path.join(__dirname, 'fixtures/index.js'),
       output: {
@@ -82,11 +83,11 @@ describe('CspHtmlWebpackPlugin', () => {
     testCspHtmlWebpackPlugin(
       webpackConfig,
       'index.html',
-      (cspPolicy, doneFn) => {
+      (cspPolicy, _, doneFn) => {
         const expected =
           "base-uri 'self';" +
           " object-src 'none';" +
-          " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=' 'sha256-1/g1S+R6cGSDVKt1CRBpt3FqHB9xehMUo71n9mG7cQY=' 'sha256-S9NOMSwhoQnTw3XV3js7Vt906IHGcjM6CpUnE2ZtduM=';" +
+          " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=';" +
           " style-src 'unsafe-inline' 'self' 'unsafe-eval'";
 
         expect(cspPolicy).toEqual(expected);
@@ -97,7 +98,7 @@ describe('CspHtmlWebpackPlugin', () => {
     );
   });
 
-  it('inserts the default policy, including sha-256 hashes of other styles found', done => {
+  it('inserts the default policy, including sha-256 hashes of other inline styles found', done => {
     const webpackConfig = {
       entry: path.join(__dirname, 'fixtures/index.js'),
       output: {
@@ -117,11 +118,11 @@ describe('CspHtmlWebpackPlugin', () => {
     testCspHtmlWebpackPlugin(
       webpackConfig,
       'index.html',
-      (cspPolicy, doneFn) => {
+      (cspPolicy, _, doneFn) => {
         const expected =
           "base-uri 'self';" +
           " object-src 'none';" +
-          " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-1/g1S+R6cGSDVKt1CRBpt3FqHB9xehMUo71n9mG7cQY=' 'sha256-S9NOMSwhoQnTw3XV3js7Vt906IHGcjM6CpUnE2ZtduM=';" +
+          " script-src 'unsafe-inline' 'self' 'unsafe-eval';" +
           " style-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='";
 
         expect(cspPolicy).toEqual(expected);
@@ -157,12 +158,13 @@ describe('CspHtmlWebpackPlugin', () => {
     testCspHtmlWebpackPlugin(
       webpackConfig,
       'index.html',
-      (cspPolicy, doneFn) => {
+      (cspPolicy, _, doneFn) => {
         const expected =
           "base-uri 'self' https://slack.com;" +
           " object-src 'none';" +
-          " script-src 'self' 'sha256-1/g1S+R6cGSDVKt1CRBpt3FqHB9xehMUo71n9mG7cQY=' 'sha256-S9NOMSwhoQnTw3XV3js7Vt906IHGcjM6CpUnE2ZtduM=';" +
-          " style-src 'self'; font-src 'self' 'https://a-slack-edge.com'";
+          " script-src 'self';" +
+          " style-src 'self';" +
+          " font-src 'self' 'https://a-slack-edge.com'";
 
         expect(cspPolicy).toEqual(expected);
 
@@ -172,36 +174,75 @@ describe('CspHtmlWebpackPlugin', () => {
     );
   });
 
-  it('ignores chunks which are not matched by the regex in the html webpack plugin settings', done => {
+  it('removes the empty Content Security Policy meta tag if enabled is false', done => {
     const webpackConfig = {
-      entry: {
-        application: path.join(__dirname, 'fixtures/index.js'),
-        ignored: path.join(__dirname, 'fixtures/ignored-index.js')
-      },
+      entry: path.join(__dirname, 'fixtures/index.js'),
       output: {
         path: OUTPUT_DIR,
-        filename: '[name].[chunkhash:7].bundle.js'
+        filename: 'index.bundle.js'
       },
       plugins: [
         new HtmlWebpackPlugin({
-          cspAssetRegex: /application/,
           filename: path.join(OUTPUT_DIR, 'index.html'),
           template: path.join(__dirname, 'fixtures', 'with-nothing.html'),
           inject: 'body'
         }),
-        new CspHtmlWebpackPlugin()
+        new CspHtmlWebpackPlugin(
+          {},
+          {
+            enabled: false
+          }
+        )
       ]
     };
 
     testCspHtmlWebpackPlugin(
       webpackConfig,
       'index.html',
-      (cspPolicy, doneFn) => {
+      (cspPolicy, $, doneFn) => {
+        expect(cspPolicy).toBeUndefined();
+        expect($('meta').length).toEqual(1);
+        doneFn();
+      },
+      done
+    );
+  });
+
+  it('still adds the CSP policy into the CSP meta tag even if the content attribute is missing', done => {
+    const webpackConfig = {
+      entry: path.join(__dirname, 'fixtures/index.js'),
+      output: {
+        path: OUTPUT_DIR,
+        filename: 'index.bundle.js'
+      },
+      plugins: [
+        new HtmlWebpackPlugin({
+          filename: path.join(OUTPUT_DIR, 'index.html'),
+          template: path.join(
+            __dirname,
+            'fixtures',
+            'with-no-content-attr.html'
+          ),
+          inject: 'body'
+        }),
+        new CspHtmlWebpackPlugin({
+          'base-uri': ["'self'", 'https://slack.com'],
+          'object-src': ["'self'"],
+          'script-src': ["'self'"],
+          'style-src': ["'self'"]
+        })
+      ]
+    };
+
+    testCspHtmlWebpackPlugin(
+      webpackConfig,
+      'index.html',
+      (cspPolicy, _, doneFn) => {
         const expected =
-          "base-uri 'self';" +
-          " object-src 'none';" +
-          " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-2uo1+jaLVcs3Is1wS2OdiUivFJq8Lpq3ety7xHM/aog=' 'sha256-wnL0JqTYMsHFvBi2ivtYlWstb/A6bHBPrMG+iws3vRo=';" +
-          " style-src 'unsafe-inline' 'self' 'unsafe-eval'";
+          "base-uri 'self' https://slack.com;" +
+          " object-src 'self';" +
+          " script-src 'self';" +
+          " style-src 'self'";
 
         expect(cspPolicy).toEqual(expected);
 
@@ -211,42 +252,15 @@ describe('CspHtmlWebpackPlugin', () => {
     );
   });
 
-  it('matches chunks using the regex in the html webpack plugin settings which are in separate entry points', done => {
-    const webpackConfig = {
-      entry: {
-        application: path.join(__dirname, 'fixtures/index.js'),
-        ignored: path.join(__dirname, 'fixtures/ignored-index.js')
-      },
-      output: {
-        path: OUTPUT_DIR,
-        filename: '[name].[chunkhash:7].bundle.js'
-      },
-      plugins: [
-        new HtmlWebpackPlugin({
-          cspAssetRegex: /application|ignored/,
-          filename: path.join(OUTPUT_DIR, 'index.html'),
-          template: path.join(__dirname, 'fixtures', 'with-nothing.html'),
-          inject: 'body'
-        }),
-        new CspHtmlWebpackPlugin()
-      ]
-    };
-
-    testCspHtmlWebpackPlugin(
-      webpackConfig,
-      'index.html',
-      (cspPolicy, doneFn) => {
-        const expected =
-          "base-uri 'self';" +
-          " object-src 'none';" +
-          " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-2uo1+jaLVcs3Is1wS2OdiUivFJq8Lpq3ety7xHM/aog=' 'sha256-wnL0JqTYMsHFvBi2ivtYlWstb/A6bHBPrMG+iws3vRo=' 'sha256-WtMoz0By3R+9pniLse9vDKgXC8DQG2I3GDXk+TPNdH8=';" +
-          " style-src 'unsafe-inline' 'self' 'unsafe-eval'";
-
-        expect(cspPolicy).toEqual(expected);
-
-        doneFn();
-      },
-      done
-    );
+  it('throws an error if an invalid hashing method is used', () => {
+    expect(() => {
+      // eslint-disable-next-line no-new
+      new CspHtmlWebpackPlugin(
+        {},
+        {
+          hashingMethod: 'invalid'
+        }
+      );
+    }).toThrow(new Error(`'invalid' is not a valid hashing method`));
   });
 });
