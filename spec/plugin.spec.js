@@ -87,7 +87,7 @@ describe('CspHtmlWebpackPlugin', () => {
         const expected =
           "base-uri 'self';" +
           " object-src 'none';" +
-          " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU=';" +
+          " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-9nPWXYBnlIeJ9HmieIATDv9Ab5plt35XZiT48TfEkJI=';" +
           " style-src 'unsafe-inline' 'self' 'unsafe-eval'";
 
         expect(cspPolicy).toEqual(expected);
@@ -123,7 +123,7 @@ describe('CspHtmlWebpackPlugin', () => {
           "base-uri 'self';" +
           " object-src 'none';" +
           " script-src 'unsafe-inline' 'self' 'unsafe-eval';" +
-          " style-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-47DEQpj8HBSa+/TImW+5JCeuQeRkm5NMpJWZG3hSuFU='";
+          " style-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-MqG77yUiqBo4MMVZAl09WSafnQY4Uu3cSdZPKxaf9sQ='";
 
         expect(cspPolicy).toEqual(expected);
 

@@ -94,10 +94,10 @@ class CspHtmlWebpackPlugin {
           const policyObj = JSON.parse(JSON.stringify(this.policy));
 
           const inlineSrc = $('script:not([src])')
-            .map((i, element) => this.hash($(element).text()))
+            .map((i, element) => this.hash($(element).html()))
             .get();
           const inlineStyle = $('style:not([href])')
-            .map((i, element) => this.hash($(element).text()))
+            .map((i, element) => this.hash($(element).html()))
             .get();
 
           policyObj['script-src'] = policyObj['script-src'].concat(inlineSrc);
