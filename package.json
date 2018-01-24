@@ -1,6 +1,6 @@
 {
   "name": "csp-html-webpack-plugin",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "A plugin which, when combined with HTMLWebpackPlugin, adds CSP tags to the HTML output",
   "main": "plugin.js",
   "scripts": {
