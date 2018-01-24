@@ -77,7 +77,9 @@ class CspHtmlWebpackPlugin {
       compilation.plugin(
         'html-webpack-plugin-after-html-processing',
         (htmlPluginData, compileCb) => {
-          const $ = cheerio.load(htmlPluginData.html);
+          const $ = cheerio.load(htmlPluginData.html, {
+            decodeEntities: false
+          });
 
           // if not enabled, remove the empty tag
           if (!this.opts.enabled) {
