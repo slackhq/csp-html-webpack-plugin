@@ -174,7 +174,7 @@ describe('CspHtmlWebpackPlugin', () => {
     );
   });
 
-  it('removes the empty Content Security Policy meta tag if enabled is false', done => {
+  it('removes the empty Content Security Policy meta tag if enabled is the bool false', done => {
     const webpackConfig = {
       entry: path.join(__dirname, 'fixtures/index.js'),
       output: {
@@ -191,6 +191,40 @@ describe('CspHtmlWebpackPlugin', () => {
           {},
           {
             enabled: false
+          }
+        )
+      ]
+    };
+
+    testCspHtmlWebpackPlugin(
+      webpackConfig,
+      'index.html',
+      (cspPolicy, $, doneFn) => {
+        expect(cspPolicy).toBeUndefined();
+        expect($('meta').length).toEqual(1);
+        doneFn();
+      },
+      done
+    );
+  });
+
+  it('removes the empty Content Security Policy meta tag if enabled is a function which return false', done => {
+    const webpackConfig = {
+      entry: path.join(__dirname, 'fixtures/index.js'),
+      output: {
+        path: OUTPUT_DIR,
+        filename: 'index.bundle.js'
+      },
+      plugins: [
+        new HtmlWebpackPlugin({
+          filename: path.join(OUTPUT_DIR, 'index.html'),
+          template: path.join(__dirname, 'fixtures', 'with-nothing.html'),
+          inject: 'body'
+        }),
+        new CspHtmlWebpackPlugin(
+          {},
+          {
+            enabled: () => false
           }
         )
       ]

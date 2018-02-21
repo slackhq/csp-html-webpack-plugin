@@ -40,7 +40,7 @@ This `CspHtmlWebpackPlugin` accepts 2 params with the following structure:
 * `{object}` Policy (optional) - a flat object which defines your CSP policy. Valid keys and values can be found on the [MDN CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy) page. Values can either be a string or an array of strings.
 * `{object}` Additional Options (optional) - a flat object with the optional configuration options:
   * `{string}` hashingMethod - accepts 'sha256', 'sha384', 'sha512' - your node version must also accept this hashing method.
-  * `{boolean}` enabled - if false, the empty CSP tag will be stripped from the html output
+  * `{boolean|Function}` enabled - if false, or the function returns false, the empty CSP tag will be stripped from the html output. The `htmlPluginData` is passed into the function as it's first param.
 
 #### Default Policy:
 

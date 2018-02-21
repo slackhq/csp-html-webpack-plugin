@@ -2,6 +2,7 @@ const cheerio = require('cheerio');
 const crypto = require('crypto');
 const uniq = require('lodash/uniq');
 const compact = require('lodash/compact');
+const isFunction = require('lodash/isFunction');
 
 const defaultPolicy = {
   'base-uri': "'self'",
@@ -34,6 +35,19 @@ class CspHtmlWebpackPlugin {
         `'${this.opts.hashingMethod}' is not a valid hashing method`
       );
     }
+  }
+
+  /**
+   * Checks to see whether the plugin is enabled. this.opts.enabled can be a function or bool here
+   * @param htmlPluginData - the htmlPluginData from compilation
+   * @return {boolean} - whether the plugin is enabled or not
+   */
+  isEnabled(htmlPluginData) {
+    if (isFunction(this.opts.enabled)) {
+      return this.opts.enabled(htmlPluginData);
+    }
+
+    return this.opts.enabled;
   }
 
   /**
@@ -82,7 +96,7 @@ class CspHtmlWebpackPlugin {
           });
 
           // if not enabled, remove the empty tag
-          if (!this.opts.enabled) {
+          if (!this.isEnabled(htmlPluginData)) {
             $('meta[http-equiv="Content-Security-Policy"]').remove();
 
             // eslint-disable-next-line no-param-reassign
