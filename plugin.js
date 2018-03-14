@@ -2,6 +2,7 @@ const cheerio = require('cheerio');
 const crypto = require('crypto');
 const uniq = require('lodash/uniq');
 const compact = require('lodash/compact');
+const flatten = require('lodash/flatten');
 const isFunction = require('lodash/isFunction');
 
 const defaultPolicy = {
@@ -114,8 +115,13 @@ class CspHtmlWebpackPlugin {
             .map((i, element) => this.hash($(element).html()))
             .get();
 
-          policyObj['script-src'] = policyObj['script-src'].concat(inlineSrc);
-          policyObj['style-src'] = policyObj['style-src'].concat(inlineStyle);
+          // Wrapped in flatten([]) to handle both when policy is a string and an array
+          policyObj['script-src'] = flatten([policyObj['script-src']]).concat(
+            inlineSrc
+          );
+          policyObj['style-src'] = flatten([policyObj['style-src']]).concat(
+            inlineStyle
+          );
 
           $('meta[http-equiv="Content-Security-Policy"]').attr(
             'content',
