@@ -306,13 +306,13 @@ describe('CspHtmlWebpackPlugin', () => {
         new HtmlWebpackPlugin({
           filename: path.join(OUTPUT_DIR, 'index.html'),
           template: path.join(__dirname, 'fixtures', 'with-js.html'),
-          inject: 'body',
+          inject: 'body'
         }),
         new CspHtmlWebpackPlugin({
           'script-src': "'self'",
-          'style-src': "'self'",
-        }),
-      ],
+          'style-src': "'self'"
+        })
+      ]
     };
 
     testCspHtmlWebpackPlugin(
