@@ -88,53 +88,108 @@ class CspHtmlWebpackPlugin {
    * @param compiler
    */
   apply(compiler) {
-    compiler.plugin('compilation', compilation => {
-      compilation.plugin(
-        'html-webpack-plugin-after-html-processing',
-        (htmlPluginData, compileCb) => {
-          const $ = cheerio.load(htmlPluginData.html, {
-            decodeEntities: false
-          });
 
-          // if not enabled, remove the empty tag
-          if (!this.isEnabled(htmlPluginData)) {
-            $('meta[http-equiv="Content-Security-Policy"]').remove();
+    if (compiler.hooks) {
+
+      compiler.hooks.compilation.tap('HtmlWebpackHarddisk', compilation => {
+        compilation.hooks.htmlWebpackPluginAfterHtmlProcessing.tapAsync(
+          'HtmlWebpackHarddisk',
+          (htmlPluginData, compileCb) => {
+            const $ = cheerio.load(htmlPluginData.html, {
+              decodeEntities: false
+            });
+
+            // if not enabled, remove the empty tag
+            if (!this.isEnabled(htmlPluginData)) {
+              $('meta[http-equiv="Content-Security-Policy"]').remove();
+
+              // eslint-disable-next-line no-param-reassign
+              htmlPluginData.html = $.html();
+
+              return compileCb(null, htmlPluginData);
+            }
+
+            const policyObj = JSON.parse(JSON.stringify(this.policy));
+
+            const inlineSrc = $('script:not([src])')
+              .map((i, element) => this.hash($(element).html()))
+              .get();
+            const inlineStyle = $('style:not([href])')
+              .map((i, element) => this.hash($(element).html()))
+              .get();
+
+            // Wrapped in flatten([]) to handle both when policy is a string and an array
+            policyObj['script-src'] = flatten([policyObj['script-src']]).concat(
+              inlineSrc
+            );
+            policyObj['style-src'] = flatten([policyObj['style-src']]).concat(
+              inlineStyle
+            );
+
+            $('meta[http-equiv="Content-Security-Policy"]').attr(
+              'content',
+              this.buildPolicy(policyObj)
+            );
 
             // eslint-disable-next-line no-param-reassign
             htmlPluginData.html = $.html();
 
             return compileCb(null, htmlPluginData);
           }
+        );
+      });
 
-          const policyObj = JSON.parse(JSON.stringify(this.policy));
+    } else {
 
-          const inlineSrc = $('script:not([src])')
-            .map((i, element) => this.hash($(element).html()))
-            .get();
-          const inlineStyle = $('style:not([href])')
-            .map((i, element) => this.hash($(element).html()))
-            .get();
+      compiler.plugin('compilation', compilation => {
+        compilation.plugin(
+          'html-webpack-plugin-after-html-processing',
+          (htmlPluginData, compileCb) => {
+            const $ = cheerio.load(htmlPluginData.html, {
+              decodeEntities: false
+            });
 
-          // Wrapped in flatten([]) to handle both when policy is a string and an array
-          policyObj['script-src'] = flatten([policyObj['script-src']]).concat(
-            inlineSrc
-          );
-          policyObj['style-src'] = flatten([policyObj['style-src']]).concat(
-            inlineStyle
-          );
+            // if not enabled, remove the empty tag
+            if (!this.isEnabled(htmlPluginData)) {
+              $('meta[http-equiv="Content-Security-Policy"]').remove();
 
-          $('meta[http-equiv="Content-Security-Policy"]').attr(
-            'content',
-            this.buildPolicy(policyObj)
-          );
+              // eslint-disable-next-line no-param-reassign
+              htmlPluginData.html = $.html();
 
-          // eslint-disable-next-line no-param-reassign
-          htmlPluginData.html = $.html();
+              return compileCb(null, htmlPluginData);
+            }
 
-          return compileCb(null, htmlPluginData);
-        }
-      );
-    });
+            const policyObj = JSON.parse(JSON.stringify(this.policy));
+
+            const inlineSrc = $('script:not([src])')
+              .map((i, element) => this.hash($(element).html()))
+              .get();
+            const inlineStyle = $('style:not([href])')
+              .map((i, element) => this.hash($(element).html()))
+              .get();
+
+            // Wrapped in flatten([]) to handle both when policy is a string and an array
+            policyObj['script-src'] = flatten([policyObj['script-src']]).concat(
+              inlineSrc
+            );
+            policyObj['style-src'] = flatten([policyObj['style-src']]).concat(
+              inlineStyle
+            );
+
+            $('meta[http-equiv="Content-Security-Policy"]').attr(
+              'content',
+              this.buildPolicy(policyObj)
+            );
+
+            // eslint-disable-next-line no-param-reassign
+            htmlPluginData.html = $.html();
+
+            return compileCb(null, htmlPluginData);
+          }
+        );
+      });
+
+    }
   }
 }
 
