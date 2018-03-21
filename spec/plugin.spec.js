@@ -297,4 +297,39 @@ describe('CspHtmlWebpackPlugin', () => {
       );
     }).toThrow(new Error(`'invalid' is not a valid hashing method`));
   });
+
+  it('handles string values for policies where the hash is appended', done => {
+    const webpackConfig = {
+      entry: path.join(__dirname, 'fixtures/index.js'),
+      output: { path: OUTPUT_DIR, filename: 'index.bundle.js' },
+      plugins: [
+        new HtmlWebpackPlugin({
+          filename: path.join(OUTPUT_DIR, 'index.html'),
+          template: path.join(__dirname, 'fixtures', 'with-js.html'),
+          inject: 'body'
+        }),
+        new CspHtmlWebpackPlugin({
+          'script-src': "'self'",
+          'style-src': "'self'"
+        })
+      ]
+    };
+
+    testCspHtmlWebpackPlugin(
+      webpackConfig,
+      'index.html',
+      (cspPolicy, _, doneFn) => {
+        const expected =
+          "base-uri 'self';" +
+          " object-src 'none';" +
+          " script-src 'self' 'sha256-9nPWXYBnlIeJ9HmieIATDv9Ab5plt35XZiT48TfEkJI=';" +
+          " style-src 'self'";
+
+        expect(cspPolicy).toEqual(expected);
+
+        doneFn();
+      },
+      done
+    );
+  });
 });
