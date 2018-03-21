@@ -88,9 +88,7 @@ class CspHtmlWebpackPlugin {
    * @param compiler
    */
   apply(compiler) {
-
     if (compiler.hooks) {
-
       compiler.hooks.compilation.tap('HtmlWebpackHarddisk', compilation => {
         compilation.hooks.htmlWebpackPluginAfterHtmlProcessing.tapAsync(
           'HtmlWebpackHarddisk',
@@ -138,9 +136,7 @@ class CspHtmlWebpackPlugin {
           }
         );
       });
-
     } else {
-
       compiler.plugin('compilation', compilation => {
         compilation.plugin(
           'html-webpack-plugin-after-html-processing',
@@ -188,7 +184,6 @@ class CspHtmlWebpackPlugin {
           }
         );
       });
-
     }
   }
 }
