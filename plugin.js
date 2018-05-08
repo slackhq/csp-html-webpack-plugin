@@ -93,14 +93,24 @@ class CspHtmlWebpackPlugin {
       decodeEntities: false
     });
 
+    let metaTag = $('meta[http-equiv="Content-Security-Policy"]');
+
     // if not enabled, remove the empty tag
     if (!this.isEnabled(htmlPluginData)) {
-      $('meta[http-equiv="Content-Security-Policy"]').remove();
+      metaTag.remove();
 
       // eslint-disable-next-line no-param-reassign
       htmlPluginData.html = $.html();
 
       return compileCb(null, htmlPluginData);
+    }
+
+    // Add element if it doesn't exist.
+    if (!metaTag.length) {
+      metaTag = cheerio.load('<meta http-equiv="Content-Security-Policy">')(
+        'meta'
+      );
+      metaTag.appendTo($('head'));
     }
 
     const policyObj = JSON.parse(JSON.stringify(this.policy));
@@ -120,10 +130,7 @@ class CspHtmlWebpackPlugin {
       inlineStyle
     );
 
-    $('meta[http-equiv="Content-Security-Policy"]').attr(
-      'content',
-      this.buildPolicy(policyObj)
-    );
+    metaTag.attr('content', this.buildPolicy(policyObj));
 
     // eslint-disable-next-line no-param-reassign
     htmlPluginData.html = $.html();

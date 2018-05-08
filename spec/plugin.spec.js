@@ -286,6 +286,85 @@ describe('CspHtmlWebpackPlugin', () => {
     );
   });
 
+  it('adds meta tag with completed policy when no meta tag is specified', done => {
+    const webpackConfig = {
+      entry: path.join(__dirname, 'fixtures/index.js'),
+      output: {
+        path: OUTPUT_DIR,
+        filename: 'index.bundle.js'
+      },
+      plugins: [
+        new HtmlWebpackPlugin({
+          filename: path.join(OUTPUT_DIR, 'index.html'),
+          template: path.join(__dirname, 'fixtures', 'with-no-meta-tag.html'),
+          inject: 'body'
+        }),
+        new CspHtmlWebpackPlugin({
+          'base-uri': ["'self'", 'https://slack.com'],
+          'object-src': ["'self'"],
+          'script-src': ["'self'"],
+          'style-src': ["'self'"]
+        })
+      ]
+    };
+
+    testCspHtmlWebpackPlugin(
+      webpackConfig,
+      'index.html',
+      (cspPolicy, _, doneFn) => {
+        const expected =
+          "base-uri 'self' https://slack.com;" +
+          " object-src 'self';" +
+          " script-src 'self';" +
+          " style-src 'self'";
+
+        expect(cspPolicy).toEqual(expected);
+
+        doneFn();
+      },
+      done
+    );
+  });
+
+  it('adds meta tag with completed policy when no template is specified', done => {
+    const webpackConfig = {
+      entry: path.join(__dirname, 'fixtures/index.js'),
+      output: {
+        path: OUTPUT_DIR,
+        filename: 'index.bundle.js'
+      },
+      plugins: [
+        new HtmlWebpackPlugin({
+          filename: path.join(OUTPUT_DIR, 'index.html'),
+          inject: 'body'
+        }),
+        new CspHtmlWebpackPlugin({
+          'base-uri': ["'self'", 'https://slack.com'],
+          'object-src': ["'self'"],
+          'script-src': ["'self'"],
+          'style-src': ["'self'"]
+        })
+      ]
+    };
+
+    testCspHtmlWebpackPlugin(
+      webpackConfig,
+      'index.html',
+      (cspPolicy, _, doneFn) => {
+        const expected =
+          "base-uri 'self' https://slack.com;" +
+          " object-src 'self';" +
+          " script-src 'self';" +
+          " style-src 'self'";
+
+        expect(cspPolicy).toEqual(expected);
+
+        doneFn();
+      },
+      done
+    );
+  });
+
   it('throws an error if an invalid hashing method is used', () => {
     expect(() => {
       // eslint-disable-next-line no-new
