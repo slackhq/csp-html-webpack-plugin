@@ -70,6 +70,7 @@ describe('CspHtmlWebpackPlugin', () => {
         path: OUTPUT_DIR,
         filename: 'index.bundle.js'
       },
+      mode: 'none',
       plugins: [
         new HtmlWebpackPlugin({
           filename: path.join(OUTPUT_DIR, 'index.html'),
@@ -105,6 +106,7 @@ describe('CspHtmlWebpackPlugin', () => {
         path: OUTPUT_DIR,
         filename: 'index.bundle.js'
       },
+      mode: 'none',
       plugins: [
         new HtmlWebpackPlugin({
           filename: path.join(OUTPUT_DIR, 'index.html'),
@@ -140,6 +142,7 @@ describe('CspHtmlWebpackPlugin', () => {
         path: OUTPUT_DIR,
         filename: 'index.bundle.js'
       },
+      mode: 'none',
       plugins: [
         new HtmlWebpackPlugin({
           filename: path.join(OUTPUT_DIR, 'index.html'),
@@ -181,6 +184,7 @@ describe('CspHtmlWebpackPlugin', () => {
         path: OUTPUT_DIR,
         filename: 'index.bundle.js'
       },
+      mode: 'none',
       plugins: [
         new HtmlWebpackPlugin({
           filename: path.join(OUTPUT_DIR, 'index.html'),
@@ -215,6 +219,7 @@ describe('CspHtmlWebpackPlugin', () => {
         path: OUTPUT_DIR,
         filename: 'index.bundle.js'
       },
+      mode: 'none',
       plugins: [
         new HtmlWebpackPlugin({
           filename: path.join(OUTPUT_DIR, 'index.html'),
@@ -249,6 +254,7 @@ describe('CspHtmlWebpackPlugin', () => {
         path: OUTPUT_DIR,
         filename: 'index.bundle.js'
       },
+      mode: 'none',
       plugins: [
         new HtmlWebpackPlugin({
           filename: path.join(OUTPUT_DIR, 'index.html'),
@@ -293,6 +299,7 @@ describe('CspHtmlWebpackPlugin', () => {
         path: OUTPUT_DIR,
         filename: 'index.bundle.js'
       },
+      mode: 'none',
       plugins: [
         new HtmlWebpackPlugin({
           filename: path.join(OUTPUT_DIR, 'index.html'),
@@ -333,6 +340,7 @@ describe('CspHtmlWebpackPlugin', () => {
         path: OUTPUT_DIR,
         filename: 'index.bundle.js'
       },
+      mode: 'none',
       plugins: [
         new HtmlWebpackPlugin({
           filename: path.join(OUTPUT_DIR, 'index.html'),
@@ -380,7 +388,11 @@ describe('CspHtmlWebpackPlugin', () => {
   it('handles string values for policies where the hash is appended', done => {
     const webpackConfig = {
       entry: path.join(__dirname, 'fixtures/index.js'),
-      output: { path: OUTPUT_DIR, filename: 'index.bundle.js' },
+      output: {
+        path: OUTPUT_DIR,
+        filename: 'index.bundle.js'
+      },
+      mode: 'none',
       plugins: [
         new HtmlWebpackPlugin({
           filename: path.join(OUTPUT_DIR, 'index.html'),
