@@ -145,10 +145,20 @@ class CspHtmlWebpackPlugin {
   apply(compiler) {
     if (compiler.hooks) {
       compiler.hooks.compilation.tap('CspHtmlWebpackPlugin', compilation => {
-        compilation.hooks.htmlWebpackPluginAfterHtmlProcessing.tapAsync(
-          'CspHtmlWebpackPlugin',
-          this.processCsp.bind(this)
-        );
+        // HtmlWebPackPlugin 3.x
+        if (compilation.hooks.htmlWebpackPluginAfterHtmlProcessing) {
+          compilation.hooks.htmlWebpackPluginAfterHtmlProcessing.tapAsync(
+            'CspHtmlWebpackPlugin',
+            this.processCsp.bind(this)
+          );
+        } else {
+          // HtmlWebPackPlugin 4.x
+          const HtmlWebpackPlugin = require('html-webpack-plugin'); // eslint-disable-line global-require
+          HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tapAsync(
+            'CspHtmlWebpackPlugin',
+            this.processCsp.bind(this)
+          );
+        }
       });
     } else {
       compiler.plugin('compilation', compilation => {
