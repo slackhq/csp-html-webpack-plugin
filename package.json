@@ -31,7 +31,7 @@
   },
   "peerDependencies": {
     "webpack": "^2 || ^3 || ^4",
-    "html-webpack-plugin": "^2 || ^3 || ^4.0.0-alpah.2"
+    "html-webpack-plugin": "^2 || ^3 || ^4.0.0-alpha"
   },
   "devDependencies": {
     "codecov": "^3.1.0",
