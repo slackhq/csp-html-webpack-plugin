@@ -177,6 +177,94 @@ describe('CspHtmlWebpackPlugin', () => {
     );
   });
 
+  describe("when the user-specified script-src policy contains 'unsafe-inline'", () => {
+    it('skips the hashing of the scripts it finds', done => {
+      const webpackConfig = {
+        entry: path.join(__dirname, 'fixtures/index.js'),
+        output: {
+          path: OUTPUT_DIR,
+          filename: 'index.bundle.js'
+        },
+        mode: 'none',
+        plugins: [
+          new HtmlWebpackPlugin({
+            filename: path.join(OUTPUT_DIR, 'index.html'),
+            template: path.join(__dirname, 'fixtures', 'with-js.html'),
+            inject: 'body'
+          }),
+          new CspHtmlWebpackPlugin({
+            'base-uri': ["'self'", 'https://slack.com'],
+            'font-src': ["'self'", "'https://a-slack-edge.com'"],
+            'script-src': ["'self'", "'unsafe-inline'"],
+            'style-src': ["'self'"]
+          })
+        ]
+      };
+
+      testCspHtmlWebpackPlugin(
+        webpackConfig,
+        'index.html',
+        (cspPolicy, _, doneFn) => {
+          const expected =
+            "base-uri 'self' https://slack.com;" +
+            " object-src 'none';" +
+            " script-src 'self' 'unsafe-inline';" +
+            " style-src 'self';" +
+            " font-src 'self' 'https://a-slack-edge.com'";
+
+          expect(cspPolicy).toEqual(expected);
+
+          doneFn();
+        },
+        done
+      );
+    });
+  });
+
+  describe("when the user-specified style-src policy contains 'unsafe-inline'", () => {
+    it('skips the hashing of the styles it finds', done => {
+      const webpackConfig = {
+        entry: path.join(__dirname, 'fixtures/index.js'),
+        output: {
+          path: OUTPUT_DIR,
+          filename: 'index.bundle.js'
+        },
+        mode: 'none',
+        plugins: [
+          new HtmlWebpackPlugin({
+            filename: path.join(OUTPUT_DIR, 'index.html'),
+            template: path.join(__dirname, 'fixtures', 'with-css.html'),
+            inject: 'body'
+          }),
+          new CspHtmlWebpackPlugin({
+            'base-uri': ["'self'", 'https://slack.com'],
+            'font-src': ["'self'", "'https://a-slack-edge.com'"],
+            'script-src': ["'self'"],
+            'style-src': ["'self'", "'unsafe-inline'"]
+          })
+        ]
+      };
+
+      testCspHtmlWebpackPlugin(
+        webpackConfig,
+        'index.html',
+        (cspPolicy, _, doneFn) => {
+          const expected =
+            "base-uri 'self' https://slack.com;" +
+            " object-src 'none';" +
+            " script-src 'self';" +
+            " style-src 'self' 'unsafe-inline';" +
+            " font-src 'self' 'https://a-slack-edge.com'";
+
+          expect(cspPolicy).toEqual(expected);
+
+          doneFn();
+        },
+        done
+      );
+    });
+  });
+
   it('removes the empty Content Security Policy meta tag if enabled is the bool false', done => {
     const webpackConfig = {
       entry: path.join(__dirname, 'fixtures/index.js'),
