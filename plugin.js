@@ -26,6 +26,7 @@ class CspHtmlWebpackPlugin {
   constructor(policy = {}, additionalOpts = {}) {
     // the policy we want to use
     this.policy = Object.assign({}, defaultPolicy, policy);
+    this.userPolicy = policy;
 
     // the additional options that this plugin allows
     this.opts = Object.assign({}, defaultAdditionalOpts, additionalOpts);
@@ -114,20 +115,25 @@ class CspHtmlWebpackPlugin {
     }
 
     const policyObj = JSON.parse(JSON.stringify(this.policy));
+    const parsedUserPolicy = JSON.parse(JSON.stringify(this.userPolicy));
 
-    const inlineSrc = $('script:not([src])')
-      .map((i, element) => this.hash($(element).html()))
-      .get();
-    const inlineStyle = $('style:not([href])')
-      .map((i, element) => this.hash($(element).html()))
-      .get();
+    // If the user policy contains 'unsafe-inline' for either script-src or style-src, we need to
+    // avoid hashing the existing script tags, so as to avoid implicitly disabling the
+    // 'unsafe-inline' preference.
 
-    // Wrapped in flatten([]) to handle both when policy is a string and an array
-    policyObj['script-src'] = flatten([policyObj['script-src']]).concat(
-      inlineSrc
+    policyObj['script-src'] = this.createPolicyObj(
+      $,
+      'script-src',
+      'script:not([src])',
+      policyObj,
+      parsedUserPolicy
     );
-    policyObj['style-src'] = flatten([policyObj['style-src']]).concat(
-      inlineStyle
+    policyObj['style-src'] = this.createPolicyObj(
+      $,
+      'style-src',
+      'style:not([href])',
+      policyObj,
+      parsedUserPolicy
     );
 
     metaTag.attr('content', this.buildPolicy(policyObj));
@@ -136,6 +142,28 @@ class CspHtmlWebpackPlugin {
     htmlPluginData.html = $.html();
 
     return compileCb(null, htmlPluginData);
+  }
+
+  /**
+   * Helper function for transforming script-src and style-src policies.
+   * @param {object} $ - the Cheerio instance
+   * @param {string} policyName - one of 'script-src' and 'style-src'
+   * @param {string} selector - a Cheerio selector string for getting the hashable elements for this policy
+   * @param {object} policyObj - the working CSP policy object
+   * @param {object} userPolicyObj - the sanitized CSP policy object provided by the user
+   * @return {object} the new policy for `policyName`
+   */
+  createPolicyObj($, policyName, selector, policyObj, userPolicyObj) {
+    // Wrapped in flatten([]) to handle both when policy is a string and an array
+    const flattenedUserPolicy = flatten(userPolicyObj[policyName]);
+    if (flattenedUserPolicy.includes("'unsafe-inline'")) {
+      return userPolicyObj[policyName];
+    }
+
+    const hashes = $(selector)
+      .map((i, element) => this.hash($(element).html()))
+      .get();
+    return flatten([policyObj[policyName]]).concat(hashes);
   }
 
   /**
