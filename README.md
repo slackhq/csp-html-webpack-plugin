@@ -42,6 +42,8 @@ This `CspHtmlWebpackPlugin` accepts 2 params with the following structure:
   * `{string}` hashingMethod - accepts 'sha256', 'sha384', 'sha512' - your node version must also accept this hashing method.
   * `{boolean|Function}` enabled - if false, or the function returns false, the empty CSP tag will be stripped from the html output. The `htmlPluginData` is passed into the function as it's first param.
 
+_Note: CSP usually runs on all files processed from HTML Webpack plugin, to disable it for a particular instance, set `disableCspPlugin` to `true(boolean)` in [HTML Webpack Plugins Options](https://github.com/jantimon/html-webpack-plugin#options)_
+
 #### Default Policy:
 
 ```
