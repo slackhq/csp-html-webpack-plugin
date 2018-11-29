@@ -300,6 +300,37 @@ describe('CspHtmlWebpackPlugin', () => {
     );
   });
 
+  it('removes the empty Content Security Policy meta tag by setting `disableCspPlugin` in HTMLWebpack Plugin`s Options', done => {
+    const webpackConfig = {
+      entry: path.join(__dirname, 'fixtures/index.js'),
+      output: {
+        path: OUTPUT_DIR,
+        filename: 'index.bundle.js'
+      },
+      mode: 'none',
+      plugins: [
+        new HtmlWebpackPlugin({
+          filename: path.join(OUTPUT_DIR, 'index.html'),
+          template: path.join(__dirname, 'fixtures', 'with-nothing.html'),
+          inject: 'body',
+          disableCspPlugin: true
+        }),
+        new CspHtmlWebpackPlugin()
+      ]
+    };
+
+    testCspHtmlWebpackPlugin(
+      webpackConfig,
+      'index.html',
+      (cspPolicy, $, doneFn) => {
+        expect(cspPolicy).toBeUndefined();
+        expect($('meta').length).toEqual(1);
+        doneFn();
+      },
+      done
+    );
+  });
+
   it('removes the empty Content Security Policy meta tag if enabled is a function which return false', done => {
     const webpackConfig = {
       entry: path.join(__dirname, 'fixtures/index.js'),
