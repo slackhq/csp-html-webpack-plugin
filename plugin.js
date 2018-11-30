@@ -4,6 +4,7 @@ const uniq = require('lodash/uniq');
 const compact = require('lodash/compact');
 const flatten = require('lodash/flatten');
 const isFunction = require('lodash/isFunction');
+const get = require('lodash/get');
 
 const defaultPolicy = {
   'base-uri': "'self'",
@@ -45,6 +46,15 @@ class CspHtmlWebpackPlugin {
    * @return {boolean} - whether the plugin is enabled or not
    */
   isEnabled(htmlPluginData) {
+    const disableCspPlugin = get(
+      htmlPluginData,
+      'plugin.options.disableCspPlugin'
+    );
+
+    if (disableCspPlugin && disableCspPlugin === true) {
+      return false;
+    }
+
     if (isFunction(this.opts.enabled)) {
       return this.opts.enabled(htmlPluginData);
     }
