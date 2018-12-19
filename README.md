@@ -39,10 +39,11 @@ Finally, add the following tag to your HTML template where you would like to add
 This `CspHtmlWebpackPlugin` accepts 2 params with the following structure:
 * `{object}` Policy (optional) - a flat object which defines your CSP policy. Valid keys and values can be found on the [MDN CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy) page. Values can either be a string or an array of strings.
 * `{object}` Additional Options (optional) - a flat object with the optional configuration options:
-  * `{string}` hashingMethod - accepts 'sha256', 'sha384', 'sha512' - your node version must also accept this hashing method.
+  * `{boolean}` devAllowUnsafe - if you as the developer want to allow `unsafe-inline`/`unsafe-eval` and _not_ include hashes for inline scripts. If any hashes are included in the policy, modern browsers ignore the `unsafe-inline` rule.
   * `{boolean|Function}` enabled - if false, or the function returns false, the empty CSP tag will be stripped from the html output. The `htmlPluginData` is passed into the function as it's first param.
+  * `{string}` hashingMethod - accepts 'sha256', 'sha384', 'sha512' - your node version must also accept this hashing method.
 
-_Note: CSP usually runs on all files processed from HTML Webpack plugin, to disable it for a particular instance, set `disableCspPlugin` to `true(boolean)` in [HTML Webpack Plugins Options](https://github.com/jantimon/html-webpack-plugin#options)_
+_Note: CSP runs on all files created by HTMLWebpackPlugin. You can disable it for a particular instance by setting `disableCspPlugin` to `true` in the HTMLWebpackPlugin options
 
 #### Default Policy:
 
@@ -59,8 +60,9 @@ _Note: CSP usually runs on all files processed from HTML Webpack plugin, to disa
 
 ```
 {
-  hashingMethod: 'sha256',
+  devAllowUnsafe: false,
   enabled: true
+  hashingMethod: 'sha256',
 }
 ```
 
@@ -72,8 +74,9 @@ new CspHtmlWebpackPlugin({
   'script-src': ["'unsafe-inline'", "'self'", "'unsafe-eval'"],
   'style-src': ["'unsafe-inline'", "'self'", "'unsafe-eval'"]
 }, {
-  hashingMethod: 'sha256',
+  devAllowUnsafe: false,
   enabled: true
+  hashingMethod: 'sha256',
 })
 ```
 
