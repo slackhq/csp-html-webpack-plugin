@@ -6,6 +6,18 @@ const flatten = require('lodash/flatten');
 const isFunction = require('lodash/isFunction');
 const get = require('lodash/get');
 
+// Attempt to load HtmlWebpackPlugin@4
+// Borrowed from https://github.com/waysact/webpack-subresource-integrity/blob/master/index.js
+let HtmlWebpackPlugin;
+try {
+  // eslint-disable-next-line global-require
+  HtmlWebpackPlugin = require('html-webpack-plugin');
+} catch (e) {
+  if (!(e instanceof Error) || e.code !== 'MODULE_NOT_FOUND') {
+    throw e;
+  }
+}
+
 const defaultPolicy = {
   'base-uri': "'self'",
   'object-src': "'none'",
@@ -188,10 +200,19 @@ class CspHtmlWebpackPlugin {
   apply(compiler) {
     if (compiler.hooks) {
       compiler.hooks.compilation.tap('CspHtmlWebpackPlugin', compilation => {
-        compilation.hooks.htmlWebpackPluginAfterHtmlProcessing.tapAsync(
-          'CspHtmlWebpackPlugin',
-          this.processCsp.bind(this)
-        );
+        if (HtmlWebpackPlugin && HtmlWebpackPlugin.getHooks) {
+          // HTMLWebpackPlugin@4
+          HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tapAsync(
+            'CspHtmlWebpackPlugin',
+            this.processCsp.bind(this)
+          );
+        } else {
+          // HTMLWebpackPlugin@3
+          compilation.hooks.htmlWebpackPluginAfterHtmlProcessing.tapAsync(
+            'CspHtmlWebpackPlugin',
+            this.processCsp.bind(this)
+          );
+        }
       });
     } else {
       compiler.plugin('compilation', compilation => {
