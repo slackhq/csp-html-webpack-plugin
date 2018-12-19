@@ -14,6 +14,7 @@ const defaultPolicy = {
 };
 
 const defaultAdditionalOpts = {
+  devAllowUnsafe: false,
   enabled: true,
   hashingMethod: 'sha256'
 };
@@ -74,6 +75,32 @@ class CspHtmlWebpackPlugin {
       .digest('base64');
 
     return `'${this.opts.hashingMethod}-${hashed}'`;
+  }
+
+  /**
+   * Helper function to return the correct policy depending on whether the dev has allowed unsafe eval/inline or not
+   * @param {object} $ - the Cheerio instance
+   * @param {string} policyName - one of 'script-src' and 'style-src'
+   * @param {string} selector - a Cheerio selector string for getting the hashable elements for this policy
+   * @param {object} policyObj - the working CSP policy object
+   * @param {object} userPolicyObj - the sanitized CSP policy object provided by the user
+   * @return {object} the new policy for `policyName`
+   */
+  createPolicyObj($, policyName, selector, policyObj, userPolicyObj) {
+    // Wrapped in flatten([]) to handle both when policy is a string and an array
+    const flattenedUserPolicy = flatten(userPolicyObj[policyName]);
+    if (
+      this.opts.devAllowUnsafe === true &&
+      (flattenedUserPolicy.includes("'unsafe-inline'") ||
+        flattenedUserPolicy.includes("'unsafe-eval'"))
+    ) {
+      return userPolicyObj[policyName];
+    }
+
+    const hashes = $(selector)
+      .map((i, element) => this.hash($(element).html()))
+      .get();
+    return flatten([policyObj[policyName]]).concat(hashes);
   }
 
   /**
@@ -152,28 +179,6 @@ class CspHtmlWebpackPlugin {
     htmlPluginData.html = $.html();
 
     return compileCb(null, htmlPluginData);
-  }
-
-  /**
-   * Helper function for transforming script-src and style-src policies.
-   * @param {object} $ - the Cheerio instance
-   * @param {string} policyName - one of 'script-src' and 'style-src'
-   * @param {string} selector - a Cheerio selector string for getting the hashable elements for this policy
-   * @param {object} policyObj - the working CSP policy object
-   * @param {object} userPolicyObj - the sanitized CSP policy object provided by the user
-   * @return {object} the new policy for `policyName`
-   */
-  createPolicyObj($, policyName, selector, policyObj, userPolicyObj) {
-    // Wrapped in flatten([]) to handle both when policy is a string and an array
-    const flattenedUserPolicy = flatten(userPolicyObj[policyName]);
-    if (flattenedUserPolicy.includes("'unsafe-inline'")) {
-      return userPolicyObj[policyName];
-    }
-
-    const hashes = $(selector)
-      .map((i, element) => this.hash($(element).html()))
-      .get();
-    return flatten([policyObj[policyName]]).concat(hashes);
   }
 
   /**
