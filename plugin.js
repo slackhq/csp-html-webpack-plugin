@@ -39,8 +39,8 @@ class CspHtmlWebpackPlugin {
    */
   constructor(policy = {}, additionalOpts = {}) {
     // the policy we want to use
-    this.policy = Object.assign({}, defaultPolicy, policy);
-    this.userPolicy = policy;
+    this.policy = Object.freeze(Object.assign({}, defaultPolicy, policy));
+    this.userPolicy = Object.freeze(policy);
 
     // the additional options that this plugin allows
     this.opts = Object.assign({}, defaultAdditionalOpts, additionalOpts);
@@ -63,15 +63,17 @@ class CspHtmlWebpackPlugin {
       htmlPluginData,
       'plugin.options.disableCspPlugin'
     );
-
     if (disableCspPlugin && disableCspPlugin === true) {
+      // the HtmlWebpackPlugin instance has disabled the plugin
       return false;
     }
 
     if (isFunction(this.opts.enabled)) {
+      // run the function to check if the plugin has been disabled
       return this.opts.enabled(htmlPluginData);
     }
 
+    // otherwise assume it's a boolean
     return this.opts.enabled;
   }
 
@@ -94,25 +96,25 @@ class CspHtmlWebpackPlugin {
    * @param {object} $ - the Cheerio instance
    * @param {string} policyName - one of 'script-src' and 'style-src'
    * @param {string} selector - a Cheerio selector string for getting the hashable elements for this policy
-   * @param {object} policyObj - the working CSP policy object
-   * @param {object} userPolicyObj - the sanitized CSP policy object provided by the user
    * @return {object} the new policy for `policyName`
    */
-  createPolicyObj($, policyName, selector, policyObj, userPolicyObj) {
-    // Wrapped in flatten([]) to handle both when policy is a string and an array
-    const flattenedUserPolicy = flatten(userPolicyObj[policyName]);
+  createPolicyObj($, policyName, selector) {
     if (
       this.opts.devAllowUnsafe === true &&
-      (flattenedUserPolicy.includes("'unsafe-inline'") ||
-        flattenedUserPolicy.includes("'unsafe-eval'"))
+      this.userPolicy[policyName] &&
+      (this.userPolicy[policyName].includes("'unsafe-inline'") ||
+        this.userPolicy[policyName].includes("'unsafe-eval'"))
     ) {
-      return userPolicyObj[policyName];
+      // the user has allowed us to override unsafe-*, and we found unsafe-* in their defined policy. Let's use it
+      return this.userPolicy[policyName];
     }
 
+    // otherwise hash all of the elements passed in
     const hashes = $(selector)
       .map((i, element) => this.hash($(element).html()))
       .get();
-    return flatten([policyObj[policyName]]).concat(hashes);
+
+    return flatten([this.policy[policyName]]).concat(hashes);
   }
 
   /**
@@ -163,29 +165,23 @@ class CspHtmlWebpackPlugin {
       metaTag.prependTo($('head'));
     }
 
-    const policyObj = JSON.parse(JSON.stringify(this.policy));
-    const parsedUserPolicy = JSON.parse(JSON.stringify(this.userPolicy));
-
-    // If the user policy contains 'unsafe-inline' for either script-src or style-src, we need to
-    // avoid hashing the existing script tags, so as to avoid implicitly disabling the
-    // 'unsafe-inline' preference.
-
-    policyObj['script-src'] = this.createPolicyObj(
+    // looks for script and style rules to hash
+    const scriptRule = this.createPolicyObj(
       $,
       'script-src',
-      'script:not([src])',
-      policyObj,
-      parsedUserPolicy
+      'script:not([src])'
     );
-    policyObj['style-src'] = this.createPolicyObj(
-      $,
-      'style-src',
-      'style:not([href])',
-      policyObj,
-      parsedUserPolicy
-    );
+    const styleRule = this.createPolicyObj($, 'style-src', 'style:not([href])');
 
-    metaTag.attr('content', this.buildPolicy(policyObj));
+    // build the policy into the context attr of the csp meta tag
+    metaTag.attr(
+      'content',
+      this.buildPolicy({
+        ...this.policy,
+        'script-src': scriptRule,
+        'style-src': styleRule
+      })
+    );
 
     // eslint-disable-next-line no-param-reassign
     htmlPluginData.html = $.html();
