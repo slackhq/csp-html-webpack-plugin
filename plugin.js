@@ -38,9 +38,8 @@ class CspHtmlWebpackPlugin {
    * @param {object} additionalOpts - additional config options - see defaultAdditionalOpts above for options available
    */
   constructor(policy = {}, additionalOpts = {}) {
-    // the policy we want to use
-    this.policy = Object.freeze(Object.assign({}, defaultPolicy, policy));
-    this.userPolicy = Object.freeze(policy);
+    // the policy passed in from the CspHtmlWebpackPlugin instance
+    this.cspPluginPolicy = Object.freeze(policy);
 
     // the additional options that this plugin allows
     this.opts = Object.assign({}, defaultAdditionalOpts, additionalOpts);
@@ -51,6 +50,33 @@ class CspHtmlWebpackPlugin {
         `'${this.opts.hashingMethod}' is not a valid hashing method`
       );
     }
+  }
+
+  /**
+   * Build the eventual policy we want to use, combining default, csp instance and html webpack instance policies defined
+   * Latter policy rules always override former
+   * @param htmlPluginData
+   * @param compileCb
+   */
+  mergePolicy(htmlPluginData, compileCb) {
+    // the policy passed in from the HtmlWebpackPlugin instance
+    this.htmlPluginPolicy = get(
+      htmlPluginData,
+      'plugin.options.cspPlugin.policy',
+      {}
+    );
+
+    // CspHtmlWebpackPlugin and HtmlWebpackPlugin policies merged
+    this.userPolicy = Object.freeze(
+      Object.assign({}, this.cspPluginPolicy, this.htmlPluginPolicy)
+    );
+
+    // defaultPolicy and userPolicy merged
+    this.policy = Object.freeze(
+      Object.assign({}, defaultPolicy, this.userPolicy)
+    );
+
+    return compileCb(null, htmlPluginData);
   }
 
   /**
@@ -198,12 +224,22 @@ class CspHtmlWebpackPlugin {
       compiler.hooks.compilation.tap('CspHtmlWebpackPlugin', compilation => {
         if (HtmlWebpackPlugin && HtmlWebpackPlugin.getHooks) {
           // HTMLWebpackPlugin@4
+          HtmlWebpackPlugin.getHooks(
+            compilation
+          ).beforeAssetTagGeneration.tapAsync(
+            'CspHtmlWebpackPlugin',
+            this.mergePolicy.bind(this)
+          );
           HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tapAsync(
             'CspHtmlWebpackPlugin',
             this.processCsp.bind(this)
           );
         } else {
           // HTMLWebpackPlugin@3
+          compilation.hooks.htmlWebpackPluginBeforeHtmlGeneration.tapAsync(
+            'CspHtmlWebpackPlugin',
+            this.mergePolicy.bind(this)
+          );
           compilation.hooks.htmlWebpackPluginAfterHtmlProcessing.tapAsync(
             'CspHtmlWebpackPlugin',
             this.processCsp.bind(this)
@@ -212,6 +248,10 @@ class CspHtmlWebpackPlugin {
       });
     } else {
       compiler.plugin('compilation', compilation => {
+        compilation.plugin(
+          'html-webpack-plugin-before-html-generation',
+          this.mergePolicy.bind(this)
+        );
         compilation.plugin(
           'html-webpack-plugin-after-html-processing',
           this.processCsp.bind(this)

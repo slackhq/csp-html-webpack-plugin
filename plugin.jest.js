@@ -112,6 +112,131 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
 
+    describe('HtmlWebpackPlugin defined policy', () => {
+      it('inserts a custom policy from a specific HtmlWebpackPlugin instance, if one is defined', done => {
+        const config = createWebpackConfig([
+          new HtmlWebpackPlugin({
+            filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
+            template: path.join(
+              __dirname,
+              'test-utils',
+              'fixtures',
+              'with-nothing.html'
+            ),
+            cspPlugin: {
+              policy: {
+                'base-uri': ["'self'", 'https://slack.com'],
+                'font-src': ["'self'", "'https://a-slack-edge.com'"],
+                'script-src': ["'self'"],
+                'style-src': ["'self'"],
+                'connect-src': ["'self'"]
+              }
+            }
+          }),
+          new CspHtmlWebpackPlugin()
+        ]);
+
+        webpackCompile(config, csps => {
+          const expected =
+            "base-uri 'self' https://slack.com;" +
+            " object-src 'none';" +
+            " script-src 'self';" +
+            " style-src 'self';" +
+            " font-src 'self' 'https://a-slack-edge.com';" +
+            " connect-src 'self'";
+
+          expect(csps['index.html']).toEqual(expected);
+          done();
+        });
+      });
+
+      it('merges and overwrites policies, with a html webpack plugin instance policy taking precedence, followed by the csp instance, and then the default policy', done => {
+        const config = createWebpackConfig([
+          new HtmlWebpackPlugin({
+            filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
+            template: path.join(
+              __dirname,
+              'test-utils',
+              'fixtures',
+              'with-nothing.html'
+            ),
+            cspPlugin: {
+              policy: {
+                'font-src': [
+                  "'https://a-slack-edge.com'",
+                  "'https://b-slack-edge.com'"
+                ]
+              }
+            }
+          }),
+          new CspHtmlWebpackPlugin({
+            'base-uri': ["'self'", 'https://slack.com'],
+            'font-src': ["'self'"]
+          })
+        ]);
+
+        webpackCompile(config, csps => {
+          const expected =
+            "base-uri 'self' https://slack.com;" + // this should be included as it's not defined in the HtmlWebpackPlugin instance
+            " object-src 'none';" + // this comes from the default policy
+            " script-src 'unsafe-inline' 'self' 'unsafe-eval';" + // this comes from the default policy
+            " style-src 'unsafe-inline' 'self' 'unsafe-eval';" + // this comes from the default policy
+            " font-src 'https://a-slack-edge.com' 'https://b-slack-edge.com'"; // this should only include the HtmlWebpackPlugin instance policy
+
+          expect(csps['index.html']).toEqual(expected);
+          done();
+        });
+      });
+
+      it('only adds a custom policy to the html file which has a policy defined; uses the default policy for any others', done => {
+        const config = createWebpackConfig([
+          new HtmlWebpackPlugin({
+            filename: path.join(WEBPACK_OUTPUT_DIR, 'index-csp.html'),
+            template: path.join(
+              __dirname,
+              'test-utils',
+              'fixtures',
+              'with-nothing.html'
+            ),
+            cspPlugin: {
+              policy: {
+                'script-src': ["'https://a-slack-edge.com'"],
+                'style-src': ["'https://b-slack-edge.com'"]
+              }
+            }
+          }),
+          new HtmlWebpackPlugin({
+            filename: path.join(WEBPACK_OUTPUT_DIR, 'index-no-csp.html'),
+            template: path.join(
+              __dirname,
+              'test-utils',
+              'fixtures',
+              'with-nothing.html'
+            )
+          }),
+          new CspHtmlWebpackPlugin()
+        ]);
+
+        webpackCompile(config, csps => {
+          const expectedCustom =
+            "base-uri 'self';" +
+            " object-src 'none';" +
+            " script-src 'https://a-slack-edge.com';" +
+            " style-src 'https://b-slack-edge.com'";
+
+          const expectedDefault =
+            "base-uri 'self';" +
+            " object-src 'none';" +
+            " script-src 'unsafe-inline' 'self' 'unsafe-eval';" +
+            " style-src 'unsafe-inline' 'self' 'unsafe-eval'";
+
+          expect(csps['index-csp.html']).toEqual(expectedCustom);
+          expect(csps['index-no-csp.html']).toEqual(expectedDefault);
+          done();
+        });
+      });
+    });
+
     describe('unsafe-inline / unsafe-eval', () => {
       it('skips the hashing of the scripts and styles it finds if devAllowUnsafe is true', done => {
         const config = createWebpackConfig([
@@ -262,6 +387,41 @@ describe('CspHtmlWebpackPlugin', () => {
       webpackCompile(config, (csps, selectors) => {
         expect(csps['index.html']).toBeUndefined();
         expect(selectors['index.html']('meta').length).toEqual(1);
+        done();
+      });
+    });
+
+    it('only removes the Content Security Policy meta tag from the HtmlWebpackPlugin instance which has been disabled', done => {
+      const config = createWebpackConfig([
+        new HtmlWebpackPlugin({
+          filename: path.join(WEBPACK_OUTPUT_DIR, 'index-enabled.html'),
+          template: path.join(
+            __dirname,
+            'test-utils',
+            'fixtures',
+            'with-nothing.html'
+          )
+        }),
+        new HtmlWebpackPlugin({
+          filename: path.join(WEBPACK_OUTPUT_DIR, 'index-disabled.html'),
+          template: path.join(
+            __dirname,
+            'test-utils',
+            'fixtures',
+            'with-nothing.html'
+          ),
+          cspPlugin: {
+            enabled: false
+          }
+        }),
+        new CspHtmlWebpackPlugin()
+      ]);
+
+      webpackCompile(config, (csps, selectors) => {
+        expect(csps['index-enabled.html']).toBeDefined();
+        expect(csps['index-disabled.html']).toBeUndefined();
+        expect(selectors['index-enabled.html']('meta').length).toEqual(2);
+        expect(selectors['index-disabled.html']('meta').length).toEqual(1);
         done();
       });
     });
