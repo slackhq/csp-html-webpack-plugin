@@ -10,7 +10,7 @@
     "jest:watch": "jest --watch --config=./jest.config.js plugin.jest.js",
     "jest:coverage:generate": "jest --coverage --config=./jest.config.js plugin.jest.js",
     "jest:coverage:clean": "rm -rf ./coverage",
-    "jest:coverage:upload": "./node_modules/.bin/codecov --token=252086ef-c14d-4f29-ab36-720265249fa2",
+    "jest:coverage:upload": "npx codecov --token=252086ef-c14d-4f29-ab36-720265249fa2",
     "jest:coverage": "npm run jest:coverage:clean && npm run jest:coverage:generate && npm run jest:coverage:upload",
     "test": "npm run eslint && npm run jest && npm run jest:coverage"
   },
@@ -37,6 +37,7 @@
     "html-webpack-plugin": "^2 || ^3 || ^4"
   },
   "devDependencies": {
+    "codecov": "^3.1.0",
     "eslint": "^5.10.0",
     "eslint-config-airbnb-base": "^13.1.0",
     "eslint-config-prettier": "^3.3.0",
