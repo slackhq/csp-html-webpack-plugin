@@ -12,6 +12,7 @@
     "eslint:fix": "eslint . --fix",
     "jasmine": "jasmine ./spec/plugin.spec.js",
     "jest": "jest --config=./jest.config.js plugin.jest.js",
+    "jest:watch": "jest --watch --config=./jest.config.js plugin.jest.js",
     "test": "npm run eslint && npm run jasmine && npm run codecov"
   },
   "repository": {

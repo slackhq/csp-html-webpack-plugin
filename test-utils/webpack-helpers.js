@@ -3,6 +3,10 @@ const webpack = require('webpack');
 const MemoryFs = require('memory-fs');
 const cheerio = require('cheerio');
 
+/**
+ * Where we want to output our files in the memory filesystem
+ * @type {string}
+ */
 const WEBPACK_OUTPUT_DIR = path.join(__dirname, 'dist');
 
 /**
@@ -51,10 +55,15 @@ function webpackCompile(webpackConfig, callbackFn, { fs = null } = {}) {
   });
 }
 
+/**
+ * Helper to create a basic webpack config which can then be used in the compile function
+ * @param plugins[] - array of plugins to pass into webpack
+ * @return {{mode: string, output: {path: string, filename: string}, entry: string, plugins: *}}
+ */
 function createWebpackConfig(plugins) {
   return {
     mode: 'none',
-    entry: path.join(__dirname, '..', 'spec', 'fixtures', 'index.js'),
+    entry: path.join(__dirname, '..', 'test-utils', 'fixtures', 'index.js'),
     output: {
       path: WEBPACK_OUTPUT_DIR,
       filename: 'index.bundle.js'

@@ -160,7 +160,7 @@ class CspHtmlWebpackPlugin {
       metaTag = cheerio.load('<meta http-equiv="Content-Security-Policy">')(
         'meta'
       );
-      metaTag.appendTo($('head'));
+      metaTag.prependTo($('head'));
     }
 
     const policyObj = JSON.parse(JSON.stringify(this.policy));
