@@ -59,11 +59,11 @@ class CspHtmlWebpackPlugin {
    * @return {boolean} - whether the plugin is enabled or not
    */
   isEnabled(htmlPluginData) {
-    const disableCspPlugin = get(
+    const cspPluginEnabled = get(
       htmlPluginData,
-      'plugin.options.disableCspPlugin'
+      'plugin.options.cspPlugin.enabled'
     );
-    if (disableCspPlugin && disableCspPlugin === true) {
+    if (cspPluginEnabled === false) {
       // the HtmlWebpackPlugin instance has disabled the plugin
       return false;
     }

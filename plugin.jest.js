@@ -189,7 +189,7 @@ describe('CspHtmlWebpackPlugin', () => {
     });
   });
 
-  describe('Meta tag', () => {
+  describe('Enabled check', () => {
     it('removes the empty Content Security Policy meta tag if enabled is the bool false', done => {
       const config = createWebpackConfig([
         new HtmlWebpackPlugin({
@@ -216,7 +216,7 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
 
-    it('removes the empty Content Security Policy meta tag if the `disableCspPlugin` option in HtmlWebpack Plugin is true', done => {
+    it('removes the empty Content Security Policy meta tag if the `cspPlugin.disabled` option in HtmlWebpack Plugin is true', done => {
       const config = createWebpackConfig([
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
@@ -226,7 +226,9 @@ describe('CspHtmlWebpackPlugin', () => {
             'fixtures',
             'with-nothing.html'
           ),
-          disableCspPlugin: true
+          cspPlugin: {
+            enabled: false
+          }
         }),
         new CspHtmlWebpackPlugin()
       ]);
@@ -263,7 +265,9 @@ describe('CspHtmlWebpackPlugin', () => {
         done();
       });
     });
+  });
 
+  describe('Meta tag', () => {
     it('still adds the CSP policy into the CSP meta tag even if the content attribute is missing', done => {
       const config = createWebpackConfig([
         new HtmlWebpackPlugin({
