@@ -4,14 +4,15 @@
   "description": "A plugin which, when combined with HTMLWebpackPlugin, adds CSP tags to the HTML output",
   "main": "plugin.js",
   "scripts": {
-    "codecov": "npm run codecov:clean && npm run codecov:generate && npm run codecov:upload",
-    "codecov:clean": "rm -rf ./coverage",
-    "codecov:generate": "./node_modules/.bin/istanbul cover ./node_modules/jasmine/bin/jasmine.js spec/plugin.spec.js",
-    "codecov:upload": "./node_modules/.bin/codecov --token=252086ef-c14d-4f29-ab36-720265249fa2",
     "eslint": "eslint .",
     "eslint:fix": "eslint . --fix",
-    "jasmine": "jasmine ./spec/plugin.spec.js",
-    "test": "npm run eslint && npm run jasmine && npm run codecov"
+    "jest": "jest --config=./jest.config.js plugin.jest.js",
+    "jest:watch": "jest --watch --config=./jest.config.js plugin.jest.js",
+    "jest:coverage:generate": "jest --coverage --config=./jest.config.js plugin.jest.js",
+    "jest:coverage:clean": "rm -rf ./coverage",
+    "jest:coverage:upload": "npx codecov --token=252086ef-c14d-4f29-ab36-720265249fa2",
+    "jest:coverage": "npm run jest:coverage:clean && npm run jest:coverage:generate && npm run jest:coverage:upload",
+    "test": "npm run eslint && npm run jest && npm run jest:coverage"
   },
   "repository": {
     "type": "git",
@@ -26,8 +27,10 @@
   "author": "Anuj Nair",
   "license": "MIT",
   "dependencies": {
+    "babel-jest": "^23.6.0",
     "cheerio": "^1.0.0-rc.2",
-    "lodash": "^4.17.11"
+    "lodash": "^4.17.11",
+    "memory-fs": "^0.4.1"
   },
   "peerDependencies": {
     "webpack": "^2 || ^3 || ^4",
@@ -35,16 +38,14 @@
   },
   "devDependencies": {
     "codecov": "^3.1.0",
-    "eslint": "^5.6.0",
+    "eslint": "^5.10.0",
     "eslint-config-airbnb-base": "^13.1.0",
-    "eslint-config-prettier": "^3.0.1",
+    "eslint-config-prettier": "^3.3.0",
     "eslint-plugin-import": "^2.14.0",
-    "eslint-plugin-prettier": "^2.6.2",
+    "eslint-plugin-prettier": "^3.0.0",
     "html-webpack-plugin": "^3.2.0",
-    "istanbul": "^0.4.5",
-    "jasmine": "^3.2.0",
-    "prettier": "^1.14.3",
-    "rimraf": "^2.6.2",
-    "webpack": "^4.19.1"
+    "jest": "^23.6.0",
+    "prettier": "^1.15.3",
+    "webpack": "^4.28.1"
   }
 }

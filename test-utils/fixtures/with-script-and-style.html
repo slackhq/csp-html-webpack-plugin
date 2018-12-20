@@ -2,13 +2,20 @@
 <html lang="en-US">
 <head>
     <meta name="author" content="Slack">
-    <meta http-equiv="Content-Security-Policy" content="">
     <title>Slack CSP HTML Webpack Plugin Tests</title>
+    <link rel="stylesheet" href="https://example.com/example.css">
     <style type="text/css">
         body {
             background-color: #e6e6e6;
         }
     </style>
+
+    <script type="text/javascript" src="https://example.com/example.js"></script>
+    <script>
+      window.test = {
+        prop: 'val'
+      };
+    </script>
 </head>
 <body>
 Body
