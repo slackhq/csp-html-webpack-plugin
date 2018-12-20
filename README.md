@@ -40,10 +40,24 @@ This `CspHtmlWebpackPlugin` accepts 2 params with the following structure:
 * `{object}` Policy (optional) - a flat object which defines your CSP policy. Valid keys and values can be found on the [MDN CSP](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy) page. Values can either be a string or an array of strings.
 * `{object}` Additional Options (optional) - a flat object with the optional configuration options:
   * `{boolean}` devAllowUnsafe - if you as the developer want to allow `unsafe-inline`/`unsafe-eval` and _not_ include hashes for inline scripts. If any hashes are included in the policy, modern browsers ignore the `unsafe-inline` rule.
-  * `{boolean|Function}` enabled - if false, or the function returns false, the empty CSP tag will be stripped from the html output. The `htmlPluginData` is passed into the function as it's first param.
+  * `{boolean|Function}` enabled - if false, or the function returns false, the empty CSP tag will be stripped from the html output. 
+    * The `htmlPluginData` is passed into the function as it's first param.
+    * If `enabled` is set the false, it will disable generating a CSP for all instances of `HtmlWebpackPlugin` in your webpack config.
   * `{string}` hashingMethod - accepts 'sha256', 'sha384', 'sha512' - your node version must also accept this hashing method.
 
-_Note: CSP runs on all files created by HTMLWebpackPlugin. You can disable it for a particular instance by setting `cspPlugin.enabled` to `false` in the HTMLWebpackPlugin options
+The plugin also adds a new config option onto each `HtmlWebpackPlugin` instance:
+* `{object}` cspPlugin - an object containing the following properties:
+  * `{boolean}` enabled - if false, the CSP tag will be removed from the HTML which this HtmlWebpackPlugin instance is generating.
+  * `{object}` policy - A custom policy which should be applied only to this instance of the HtmlWebpackPlugin
+
+Note that policies are merged in the following order:
+```
+> HtmlWebpackPlugin cspPlugin.policy
+> CspHtmlWebpackPlugin policy
+> CspHtmlWebpackPlugin defaultPolicy
+```
+
+If 2 policies have the same key/policy rule, the former policy will override the latter policy. Entries in a specific rule will not be merged; they will be replaced.
 
 #### Default Policy:
 
@@ -68,6 +82,18 @@ _Note: CSP runs on all files created by HTMLWebpackPlugin. You can disable it fo
 
 #### Full Configuration with all options:
 ```
+new HtmlWebpackPlugin({
+  cspPlugin: {
+    enabled: true,
+    policy: {
+      'base-uri': "'self'",
+      'object-src': "'none'",
+      'script-src': ["'unsafe-inline'", "'self'", "'unsafe-eval'"],
+      'style-src': ["'unsafe-inline'", "'self'", "'unsafe-eval'"]
+    }
+  }
+});
+
 new CspHtmlWebpackPlugin({
   'base-uri': "'self'",
   'object-src': "'none'",
