@@ -4,16 +4,15 @@
   "description": "A plugin which, when combined with HTMLWebpackPlugin, adds CSP tags to the HTML output",
   "main": "plugin.js",
   "scripts": {
-    "codecov": "npm run codecov:clean && npm run codecov:generate && npm run codecov:upload",
-    "codecov:clean": "rm -rf ./coverage",
-    "codecov:generate": "./node_modules/.bin/istanbul cover ./node_modules/jasmine/bin/jasmine.js spec/plugin.spec.js",
-    "codecov:upload": "./node_modules/.bin/codecov --token=252086ef-c14d-4f29-ab36-720265249fa2",
     "eslint": "eslint .",
     "eslint:fix": "eslint . --fix",
-    "jasmine": "jasmine ./spec/plugin.spec.js",
     "jest": "jest --config=./jest.config.js plugin.jest.js",
     "jest:watch": "jest --watch --config=./jest.config.js plugin.jest.js",
-    "test": "npm run eslint && npm run jasmine && npm run codecov"
+    "jest:coverage:generate": "jest --coverage --config=./jest.config.js plugin.jest.js",
+    "jest:coverage:clean": "rm -rf ./coverage",
+    "jest:coverage:upload": "./node_modules/.bin/codecov --token=252086ef-c14d-4f29-ab36-720265249fa2",
+    "jest:coverage": "npm run jest:coverage:clean && npm run jest:coverage:generate && npm run jest:coverage:upload",
+    "test": "npm run eslint && npm run jest && npm run jest:coverage"
   },
   "repository": {
     "type": "git",
@@ -38,18 +37,14 @@
     "html-webpack-plugin": "^2 || ^3 || ^4"
   },
   "devDependencies": {
-    "codecov": "^3.1.0",
     "eslint": "^5.6.0",
     "eslint-config-airbnb-base": "^13.1.0",
     "eslint-config-prettier": "^3.0.1",
     "eslint-plugin-import": "^2.14.0",
     "eslint-plugin-prettier": "^2.6.2",
     "html-webpack-plugin": "^3.2.0",
-    "istanbul": "^0.4.5",
-    "jasmine": "^3.2.0",
     "jest": "^23.6.0",
     "prettier": "^1.14.3",
-    "rimraf": "^2.6.2",
     "webpack": "^4.19.1"
   }
 }
