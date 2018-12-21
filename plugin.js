@@ -104,6 +104,70 @@ class CspHtmlWebpackPlugin {
   }
 
   /**
+   * Returns whether the dev has defined unsafe-* in their policy and has set the flag devAllowUnsafe
+   * If so, we shouldn't append any shas/nonces to the policy
+   * @param policyName
+   * @return {boolean|any}
+   */
+  isDevForcingOwnUnsafePolicy(policyName) {
+    return (
+      this.opts.devAllowUnsafe === true &&
+      this.userPolicy[policyName] &&
+      (this.userPolicy[policyName].includes("'unsafe-inline'") ||
+        this.userPolicy[policyName].includes("'unsafe-eval'"))
+    );
+  }
+
+  /**
+   * Create a random nonce which we will set onto our assets
+   * @return {string}
+   */
+  // eslint-disable-next-line class-methods-use-this
+  createNonce() {
+    return crypto.randomBytes(16).toString('base64');
+  }
+
+  /**
+   * Generates nonces for the policy / selector we define
+   * @param {object} $ - the Cheerio instance
+   * @param {string} policyName - one of 'script-src' and 'style-src'
+   * @param {string} selector - a Cheerio selector string for getting the hashable elements for this policy
+   * @return {string[]}
+   */
+  setNonce($, policyName, selector) {
+    if (this.isDevForcingOwnUnsafePolicy(policyName)) {
+      // we don't want to add any nonce
+      return [];
+    }
+
+    // get a list of already defined urls for this policy type
+    const policy = this.policy[policyName];
+    const policyStr = Array.isArray(policy) ? policy.join(' ') : policy;
+    const urls = policyStr.match(/https?:\/\/[^'"]+/g) || [];
+
+    return $(selector)
+      .map((i, element) => {
+        // get the src/href and check if it's already been whitelisted by the user.
+        // if it has, there's no reason to add a nonce for it
+        const srcOrHref = $(element).attr('src') || $(element).attr('href');
+        for (let j = 0, len = urls.length; j < len; j += 1) {
+          if (srcOrHref.startsWith(urls[j])) {
+            return null;
+          }
+        }
+
+        // create a nonce, and attach to the script tag
+        const nonce = this.createNonce();
+        $(element).attr('nonce', nonce);
+
+        // return in the format csp needs
+        return `'nonce-${nonce}'`;
+      })
+      .filter(entry => entry !== null)
+      .get();
+  }
+
+  /**
    * Hashes a string using the hashing method we have opted for and then base64 encodes the result
    * @param {string} str - the string to hash
    * @returns {string} - the returned hash with the hashing method prepended e.g. sha256-123456abcdef
@@ -118,29 +182,20 @@ class CspHtmlWebpackPlugin {
   }
 
   /**
-   * Helper function to return the correct policy depending on whether the dev has allowed unsafe eval/inline or not
+   * Calculates shas of the policy / selector we define
    * @param {object} $ - the Cheerio instance
    * @param {string} policyName - one of 'script-src' and 'style-src'
    * @param {string} selector - a Cheerio selector string for getting the hashable elements for this policy
-   * @return {object} the new policy for `policyName`
+   * @return {string[]}
    */
-  createPolicyObj($, policyName, selector) {
-    if (
-      this.opts.devAllowUnsafe === true &&
-      this.userPolicy[policyName] &&
-      (this.userPolicy[policyName].includes("'unsafe-inline'") ||
-        this.userPolicy[policyName].includes("'unsafe-eval'"))
-    ) {
-      // the user has allowed us to override unsafe-*, and we found unsafe-* in their defined policy. Let's use it
-      return this.userPolicy[policyName];
+  getShas($, policyName, selector) {
+    if (this.isDevForcingOwnUnsafePolicy(policyName)) {
+      return [];
     }
 
-    // otherwise hash all of the elements passed in
-    const hashes = $(selector)
+    return $(selector)
       .map((i, element) => this.hash($(element).html()))
       .get();
-
-    return flatten([this.policy[policyName]]).concat(hashes);
   }
 
   /**
@@ -191,21 +246,27 @@ class CspHtmlWebpackPlugin {
       metaTag.prependTo($('head'));
     }
 
-    // looks for script and style rules to hash
-    const scriptRule = this.createPolicyObj(
-      $,
-      'script-src',
-      'script:not([src])'
-    );
-    const styleRule = this.createPolicyObj($, 'style-src', 'style:not([href])');
+    // get all nonces for script and style tags
+    const scriptNonce = this.setNonce($, 'script-src', 'script[src]');
+    const styleNonce = this.setNonce($, 'style-src', 'link[rel="stylesheet"]');
+
+    // get all shas for script and style tags
+    const scriptShas = this.getShas($, 'script-src', 'script:not([src])');
+    const styleShas = this.getShas($, 'style-src', 'style:not([href])');
 
     // build the policy into the context attr of the csp meta tag
     metaTag.attr(
       'content',
       this.buildPolicy({
         ...this.policy,
-        'script-src': scriptRule,
-        'style-src': styleRule
+        'script-src': flatten([this.policy['script-src']]).concat(
+          scriptShas,
+          scriptNonce
+        ),
+        'style-src': flatten([this.policy['style-src']]).concat(
+          styleShas,
+          styleNonce
+        )
       })
     );
 

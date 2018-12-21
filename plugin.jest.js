@@ -1,4 +1,5 @@
 const path = require('path');
+const crypto = require('crypto');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const {
   WEBPACK_OUTPUT_DIR,
@@ -8,6 +9,21 @@ const {
 const CspHtmlWebpackPlugin = require('./plugin');
 
 describe('CspHtmlWebpackPlugin', () => {
+  beforeEach(() => {
+    jest
+      .spyOn(crypto, 'randomBytes')
+      .mockImplementationOnce(() => 'mockedbase64string-1')
+      .mockImplementationOnce(() => 'mockedbase64string-2')
+      .mockImplementationOnce(() => 'mockedbase64string-3')
+      .mockImplementation(
+        () => new Error('Need to add more crypto.randomBytes mocks')
+      );
+  });
+
+  afterEach(() => {
+    crypto.randomBytes.mockReset();
+  });
+
   describe('Error checking', () => {
     it('throws an error if an invalid hashing method is used', () => {
       expect(() => {
@@ -22,8 +38,8 @@ describe('CspHtmlWebpackPlugin', () => {
     });
   });
 
-  describe('Adding sha checksums', () => {
-    it('inserts the default policy, including sha-256 hashes of other inline scripts and styles found', done => {
+  describe('Adding sha and nonce checksums', () => {
+    it('inserts the default policy, including sha-256 hashes of other inline scripts and styles found, and nonce hashes of external scripts found', done => {
       const config = createWebpackConfig([
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
@@ -41,8 +57,8 @@ describe('CspHtmlWebpackPlugin', () => {
         const expected =
           "base-uri 'self';" +
           " object-src 'none';" +
-          " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-ixjZMYNfWQWawUHioWOx2jBsTmfxucX7IlwsMt2jWvc=';" +
-          " style-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-MqG77yUiqBo4MMVZAl09WSafnQY4Uu3cSdZPKxaf9sQ='";
+          " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-ixjZMYNfWQWawUHioWOx2jBsTmfxucX7IlwsMt2jWvc=' 'nonce-mockedbase64string-1' 'nonce-mockedbase64string-2';" +
+          " style-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-MqG77yUiqBo4MMVZAl09WSafnQY4Uu3cSdZPKxaf9sQ=' 'nonce-mockedbase64string-3'";
 
         expect(csps['index.html']).toEqual(expected);
         done();
@@ -73,7 +89,7 @@ describe('CspHtmlWebpackPlugin', () => {
         const expected =
           "base-uri 'self' https://slack.com;" +
           " object-src 'none';" +
-          " script-src 'self';" +
+          " script-src 'self' 'nonce-mockedbase64string-1';" +
           " style-src 'self';" +
           " font-src 'self' 'https://a-slack-edge.com';" +
           " connect-src 'self'";
@@ -83,7 +99,7 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
 
-    it('handles string values for policies where the hash is appended', done => {
+    it('handles string values for policies where hashes and nonces are appended', done => {
       const config = createWebpackConfig([
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
@@ -104,10 +120,60 @@ describe('CspHtmlWebpackPlugin', () => {
         const expected =
           "base-uri 'self';" +
           " object-src 'none';" +
-          " script-src 'self' 'sha256-ixjZMYNfWQWawUHioWOx2jBsTmfxucX7IlwsMt2jWvc=';" +
-          " style-src 'self' 'sha256-MqG77yUiqBo4MMVZAl09WSafnQY4Uu3cSdZPKxaf9sQ='";
+          " script-src 'self' 'sha256-ixjZMYNfWQWawUHioWOx2jBsTmfxucX7IlwsMt2jWvc=' 'nonce-mockedbase64string-1' 'nonce-mockedbase64string-2';" +
+          " style-src 'self' 'sha256-MqG77yUiqBo4MMVZAl09WSafnQY4Uu3cSdZPKxaf9sQ=' 'nonce-mockedbase64string-3'";
 
         expect(csps['index.html']).toEqual(expected);
+        done();
+      });
+    });
+
+    it("doesn't add nonces for scripts / styles generated where their host has already been defined in the CSP", done => {
+      const config = createWebpackConfig(
+        [
+          new HtmlWebpackPlugin({
+            filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
+            template: path.join(
+              __dirname,
+              'test-utils',
+              'fixtures',
+              'with-script-and-style.html'
+            )
+          }),
+          new CspHtmlWebpackPlugin({
+            'script-src': ["'self'", 'https://my.cdn.com'],
+            'style-src': ["'self'"]
+          })
+        ],
+        'https://my.cdn.com/'
+      );
+
+      webpackCompile(config, (csps, selectors) => {
+        const $ = selectors['index.html'];
+        const expected =
+          "base-uri 'self';" +
+          " object-src 'none';" +
+          " script-src 'self' https://my.cdn.com 'sha256-ixjZMYNfWQWawUHioWOx2jBsTmfxucX7IlwsMt2jWvc=' 'nonce-mockedbase64string-1';" +
+          " style-src 'self' 'sha256-MqG77yUiqBo4MMVZAl09WSafnQY4Uu3cSdZPKxaf9sQ=' 'nonce-mockedbase64string-2'";
+
+        // csp should be defined properly
+        expect(csps['index.html']).toEqual(expected);
+
+        // script with host not defined should have nonce defined, and correct
+        expect($('script')[0].attribs.src).toEqual(
+          'https://example.com/example.js'
+        );
+        expect($('script')[0].attribs.nonce).toEqual('mockedbase64string-1');
+
+        // inline script, so no nonce
+        expect($('script')[1].attribs).toEqual({});
+
+        // script with host defined should not have a nonce
+        expect($('script')[2].attribs.src).toEqual(
+          'https://my.cdn.com/index.bundle.js'
+        );
+        expect(Object.keys($('script')[2].attribs)).not.toContain('nonce');
+
         done();
       });
     });
@@ -140,7 +206,7 @@ describe('CspHtmlWebpackPlugin', () => {
           const expected =
             "base-uri 'self' https://slack.com;" +
             " object-src 'none';" +
-            " script-src 'self';" +
+            " script-src 'self' 'nonce-mockedbase64string-1';" +
             " style-src 'self';" +
             " font-src 'self' 'https://a-slack-edge.com';" +
             " connect-src 'self'";
@@ -179,7 +245,7 @@ describe('CspHtmlWebpackPlugin', () => {
           const expected =
             "base-uri 'self' https://slack.com;" + // this should be included as it's not defined in the HtmlWebpackPlugin instance
             " object-src 'none';" + // this comes from the default policy
-            " script-src 'unsafe-inline' 'self' 'unsafe-eval';" + // this comes from the default policy
+            " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'nonce-mockedbase64string-1';" + // this comes from the default policy
             " style-src 'unsafe-inline' 'self' 'unsafe-eval';" + // this comes from the default policy
             " font-src 'https://a-slack-edge.com' 'https://b-slack-edge.com'"; // this should only include the HtmlWebpackPlugin instance policy
 
@@ -221,13 +287,13 @@ describe('CspHtmlWebpackPlugin', () => {
           const expectedCustom =
             "base-uri 'self';" +
             " object-src 'none';" +
-            " script-src 'https://a-slack-edge.com';" +
+            " script-src 'https://a-slack-edge.com' 'nonce-mockedbase64string-1';" +
             " style-src 'https://b-slack-edge.com'";
 
           const expectedDefault =
             "base-uri 'self';" +
             " object-src 'none';" +
-            " script-src 'unsafe-inline' 'self' 'unsafe-eval';" +
+            " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'nonce-mockedbase64string-2';" +
             " style-src 'unsafe-inline' 'self' 'unsafe-eval'";
 
           expect(csps['index-csp.html']).toEqual(expectedCustom);
@@ -238,7 +304,7 @@ describe('CspHtmlWebpackPlugin', () => {
     });
 
     describe('unsafe-inline / unsafe-eval', () => {
-      it('skips the hashing of the scripts and styles it finds if devAllowUnsafe is true', done => {
+      it('skips the hashing / nonceing of the scripts and styles it finds if devAllowUnsafe is true', done => {
         const config = createWebpackConfig([
           new HtmlWebpackPlugin({
             filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
@@ -275,7 +341,7 @@ describe('CspHtmlWebpackPlugin', () => {
         });
       });
 
-      it('continues hashing scripts and styles if unsafe-inline/unsafe-eval is included, but devAllowUnsafe is false', done => {
+      it('continues hashing / nonceing scripts and styles if unsafe-inline/unsafe-eval is included, but devAllowUnsafe is false', done => {
         const config = createWebpackConfig([
           new HtmlWebpackPlugin({
             filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
@@ -303,8 +369,8 @@ describe('CspHtmlWebpackPlugin', () => {
           const expected =
             "base-uri 'self' https://slack.com;" +
             " object-src 'none';" +
-            " script-src 'self' 'unsafe-inline' 'sha256-ixjZMYNfWQWawUHioWOx2jBsTmfxucX7IlwsMt2jWvc=';" +
-            " style-src 'self' 'unsafe-eval' 'sha256-MqG77yUiqBo4MMVZAl09WSafnQY4Uu3cSdZPKxaf9sQ=';" +
+            " script-src 'self' 'unsafe-inline' 'sha256-ixjZMYNfWQWawUHioWOx2jBsTmfxucX7IlwsMt2jWvc=' 'nonce-mockedbase64string-1' 'nonce-mockedbase64string-2';" +
+            " style-src 'self' 'unsafe-eval' 'sha256-MqG77yUiqBo4MMVZAl09WSafnQY4Uu3cSdZPKxaf9sQ=' 'nonce-mockedbase64string-3';" +
             " font-src 'self' 'https://a-slack-edge.com'";
 
           expect(csps['index.html']).toEqual(expected);
@@ -446,7 +512,7 @@ describe('CspHtmlWebpackPlugin', () => {
         const expected =
           "base-uri 'self';" +
           " object-src 'none';" +
-          " script-src 'unsafe-inline' 'self' 'unsafe-eval';" +
+          " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'nonce-mockedbase64string-1';" +
           " style-src 'unsafe-inline' 'self' 'unsafe-eval'";
 
         expect(csps['index.html']).toEqual(expected);
@@ -472,7 +538,7 @@ describe('CspHtmlWebpackPlugin', () => {
         const expected =
           "base-uri 'self';" +
           " object-src 'none';" +
-          " script-src 'unsafe-inline' 'self' 'unsafe-eval';" +
+          " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'nonce-mockedbase64string-1';" +
           " style-src 'unsafe-inline' 'self' 'unsafe-eval'";
 
         expect(csps['index.html']).toEqual(expected);
@@ -492,7 +558,7 @@ describe('CspHtmlWebpackPlugin', () => {
         const expected =
           "base-uri 'self';" +
           " object-src 'none';" +
-          " script-src 'unsafe-inline' 'self' 'unsafe-eval';" +
+          " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'nonce-mockedbase64string-1';" +
           " style-src 'unsafe-inline' 'self' 'unsafe-eval'";
 
         expect(csps['index.html']).toEqual(expected);

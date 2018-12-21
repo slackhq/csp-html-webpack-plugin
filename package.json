@@ -7,7 +7,7 @@
     "eslint": "eslint .",
     "eslint:fix": "eslint . --fix",
     "jest": "jest --config=./jest.config.js plugin.jest.js",
-    "jest:watch": "jest --watch --config=./jest.config.js plugin.jest.js",
+    "jest:watch": "jest --watch --verbose=false --config=./jest.config.js plugin.jest.js",
     "jest:coverage:generate": "jest --coverage --config=./jest.config.js plugin.jest.js",
     "jest:coverage:clean": "rm -rf ./coverage",
     "jest:coverage:upload": "npx codecov --token=252086ef-c14d-4f29-ab36-720265249fa2",
