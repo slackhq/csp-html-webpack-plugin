@@ -282,17 +282,12 @@ class CspHtmlWebpackPlugin {
       decodeEntities: false
     });
 
-    let metaTag = $('meta[http-equiv="Content-Security-Policy"]');
-
     // if not enabled, remove the empty tag
     if (!this.isEnabled(htmlPluginData)) {
-      metaTag.remove();
-
-      // eslint-disable-next-line no-param-reassign
-      htmlPluginData.html = $.html();
-
       return compileCb(null, htmlPluginData);
     }
+
+    let metaTag = $('meta[http-equiv="Content-Security-Policy"]');
 
     // Add element if it doesn't exist.
     if (!metaTag.length) {
