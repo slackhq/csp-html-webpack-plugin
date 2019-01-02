@@ -29,11 +29,6 @@ new HtmlWebpackPlugin()
 new CspHtmlWebpackPlugin()
 ```
 
-Finally, add the following tag to your HTML template where you would like to add the CSP policy:
-```
-<meta http-equiv="Content-Security-Policy" content="">
-```
-
 ## Configuration
 
 This `CspHtmlWebpackPlugin` accepts 2 params with the following structure:
