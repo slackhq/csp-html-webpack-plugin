@@ -36,6 +36,81 @@ describe('CspHtmlWebpackPlugin', () => {
         );
       }).toThrow(new Error(`'invalid' is not a valid hashing method`));
     });
+
+    describe('validatePolicy', () => {
+      [
+        'self',
+        'unsafe-inline',
+        'unsafe-eval',
+        'none',
+        'strict-dynamic',
+        'report-sample'
+      ].forEach(source => {
+        it(`throws an error if '${source}' is not wrapped in apostrophes in an array defined policy`, done => {
+          const config = createWebpackConfig([
+            new HtmlWebpackPlugin({
+              filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
+              template: path.join(
+                __dirname,
+                'test-utils',
+                'fixtures',
+                'with-nothing.html'
+              )
+            }),
+            new CspHtmlWebpackPlugin({
+              'script-src': [source]
+            })
+          ]);
+
+          webpackCompile(
+            config,
+            (_1, _2, _3, errors) => {
+              expect(errors[0]).toEqual(
+                new Error(
+                  `CSP: policy for script-src contains ${source} which should be wrapped in apostrophes`
+                )
+              );
+              done();
+            },
+            {
+              expectError: true
+            }
+          );
+        });
+
+        it(`throws an error if '${source}' is not wrapped in apostrophes in a string defined policy`, done => {
+          const config = createWebpackConfig([
+            new HtmlWebpackPlugin({
+              filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
+              template: path.join(
+                __dirname,
+                'test-utils',
+                'fixtures',
+                'with-nothing.html'
+              )
+            }),
+            new CspHtmlWebpackPlugin({
+              'script-src': source
+            })
+          ]);
+
+          webpackCompile(
+            config,
+            (_1, _2, _3, errors) => {
+              expect(errors[0]).toEqual(
+                new Error(
+                  `CSP: policy for script-src contains ${source} which should be wrapped in apostrophes`
+                )
+              );
+              done();
+            },
+            {
+              expectError: true
+            }
+          );
+        });
+      });
+    });
   });
 
   describe('Adding sha and nonce checksums', () => {
@@ -128,7 +203,7 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
 
-    it("doesn't add nonces for scripts / styles generated where their host has already been defined in the CSP", done => {
+    it("doesn't add nonces for scripts / styles generated where their host has already been defined in the CSP, and 'strict-dynamic' doesn't exist in the policy", done => {
       const config = createWebpackConfig(
         [
           new HtmlWebpackPlugin({
@@ -173,6 +248,58 @@ describe('CspHtmlWebpackPlugin', () => {
           'https://my.cdn.com/index.bundle.js'
         );
         expect(Object.keys($('script')[2].attribs)).not.toContain('nonce');
+
+        done();
+      });
+    });
+
+    it("continues to add nonces to scripts / styles even if the host has already been whitelisted due to 'strict-dynamic' existing in the policy", done => {
+      const config = createWebpackConfig(
+        [
+          new HtmlWebpackPlugin({
+            filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
+            template: path.join(
+              __dirname,
+              'test-utils',
+              'fixtures',
+              'with-script-and-style.html'
+            )
+          }),
+          new CspHtmlWebpackPlugin({
+            'script-src': ["'self'", "'strict-dynamic'", 'https://my.cdn.com'],
+            'style-src': ["'self'"]
+          })
+        ],
+        'https://my.cdn.com/'
+      );
+
+      webpackCompile(config, (csps, selectors) => {
+        const $ = selectors['index.html'];
+
+        // 'strict-dynamic' should be at the end of the script-src here
+        const expected =
+          "base-uri 'self';" +
+          " object-src 'none';" +
+          " script-src 'self' https://my.cdn.com 'sha256-ixjZMYNfWQWawUHioWOx2jBsTmfxucX7IlwsMt2jWvc=' 'nonce-mockedbase64string-1' 'nonce-mockedbase64string-2' 'strict-dynamic';" +
+          " style-src 'self' 'sha256-MqG77yUiqBo4MMVZAl09WSafnQY4Uu3cSdZPKxaf9sQ=' 'nonce-mockedbase64string-3'";
+
+        // csp should be defined properly
+        expect(csps['index.html']).toEqual(expected);
+
+        // script with host not defined should have nonce defined, and correct
+        expect($('script')[0].attribs.src).toEqual(
+          'https://example.com/example.js'
+        );
+        expect($('script')[0].attribs.nonce).toEqual('mockedbase64string-1');
+
+        // inline script, so no nonce
+        expect($('script')[1].attribs).toEqual({});
+
+        // script with host defined should also have a nonce
+        expect($('script')[2].attribs.src).toEqual(
+          'https://my.cdn.com/index.bundle.js'
+        );
+        expect($('script')[2].attribs.nonce).toEqual('mockedbase64string-2');
 
         done();
       });

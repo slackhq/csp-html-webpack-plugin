@@ -55,10 +55,11 @@ class CspHtmlWebpackPlugin {
   /**
    * Build the eventual policy we want to use, combining default, csp instance and html webpack instance policies defined
    * Latter policy rules always override former
-   * @param htmlPluginData
-   * @param compileCb
+   * @param {object} compilation - the webpack compilation object
+   * @param {object} htmlPluginData - the HtmlWebpackPlugin data object
+   * @param {function} compileCb - the callback function to continue webpack compilation
    */
-  mergePolicy(htmlPluginData, compileCb) {
+  mergePolicy(compilation, htmlPluginData, compileCb) {
     // the policy passed in from the HtmlWebpackPlugin instance
     this.htmlPluginPolicy = get(
       htmlPluginData,
@@ -76,7 +77,46 @@ class CspHtmlWebpackPlugin {
       Object.assign({}, defaultPolicy, this.userPolicy)
     );
 
+    this.validatePolicy(compilation);
+
     return compileCb(null, htmlPluginData);
+  }
+
+  /**
+   * Validate the policy by making sure that all static sources have been wrapped in apostrophes
+   * i.e. policy should contain 'self' instead of self
+   * @param {object} compilation - the webpack compilation object
+   */
+  validatePolicy(compilation) {
+    const staticSources = [
+      'self',
+      'unsafe-inline',
+      'unsafe-eval',
+      'none',
+      'strict-dynamic',
+      'report-sample'
+    ];
+    const sourcesRegexes = staticSources.map(
+      source => new RegExp(`\\s${source}\\s`)
+    );
+
+    Object.keys(this.policy).forEach(key => {
+      const val = Array.isArray(this.policy[key])
+        ? compact(uniq(this.policy[key])).join(' ')
+        : this.policy[key];
+
+      for (let i = 0, len = sourcesRegexes.length; i < len; i += 1) {
+        if (` ${val} `.match(sourcesRegexes[i])) {
+          compilation.errors.push(
+            new Error(
+              `CSP: policy for ${key} contains ${
+                staticSources[i]
+              } which should be wrapped in apostrophes`
+            )
+          );
+        }
+      }
+    });
   }
 
   /**
@@ -140,19 +180,26 @@ class CspHtmlWebpackPlugin {
       return [];
     }
 
-    // get a list of already defined urls for this policy type
     const policy = this.policy[policyName];
     const policyStr = Array.isArray(policy) ? policy.join(' ') : policy;
+
+    // get a list of already defined urls for this policy type
     const urls = policyStr.match(/https?:\/\/[^'"]+/g) || [];
+
+    // check if the user has defined 'strict-dynamic' in their policy
+    // if so, we will need to include the nonce even if the domain has been whitelisted for it
+    const hasStrictDynamic = policyStr.includes("'strict-dynamic'");
 
     return $(selector)
       .map((i, element) => {
         // get the src/href and check if it's already been whitelisted by the user.
-        // if it has, there's no reason to add a nonce for it
-        const srcOrHref = $(element).attr('src') || $(element).attr('href');
-        for (let j = 0, len = urls.length; j < len; j += 1) {
-          if (srcOrHref.startsWith(urls[j])) {
-            return null;
+        // if it has, and the dev hasn't defined strict-dynamic, there's no reason to add a nonce for it
+        if (!hasStrictDynamic) {
+          const srcOrHref = $(element).attr('src') || $(element).attr('href');
+          for (let j = 0, len = urls.length; j < len; j += 1) {
+            if (srcOrHref.startsWith(urls[j])) {
+              return null;
+            }
           }
         }
 
@@ -210,6 +257,15 @@ class CspHtmlWebpackPlugin {
         const val = Array.isArray(policyObj[key])
           ? compact(uniq(policyObj[key])).join(' ')
           : policyObj[key];
+
+        // move strict dynamic to the end of the policy if it exists to be backwards compatible with csp2
+        // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#strict-dynamic
+        if (val.includes("'strict-dynamic'")) {
+          const newVal = `${val
+            .replace(/\s?'strict-dynamic'\s?/gi, ' ')
+            .trim()} 'strict-dynamic'`;
+          return `${key} ${newVal}`;
+        }
 
         return `${key} ${val}`;
       })
@@ -289,7 +345,7 @@ class CspHtmlWebpackPlugin {
             compilation
           ).beforeAssetTagGeneration.tapAsync(
             'CspHtmlWebpackPlugin',
-            this.mergePolicy.bind(this)
+            this.mergePolicy.bind(this, compilation)
           );
           HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tapAsync(
             'CspHtmlWebpackPlugin',
@@ -299,7 +355,7 @@ class CspHtmlWebpackPlugin {
           // HTMLWebpackPlugin@3
           compilation.hooks.htmlWebpackPluginBeforeHtmlGeneration.tapAsync(
             'CspHtmlWebpackPlugin',
-            this.mergePolicy.bind(this)
+            this.mergePolicy.bind(this, compilation)
           );
           compilation.hooks.htmlWebpackPluginAfterHtmlProcessing.tapAsync(
             'CspHtmlWebpackPlugin',
@@ -311,7 +367,7 @@ class CspHtmlWebpackPlugin {
       compiler.plugin('compilation', compilation => {
         compilation.plugin(
           'html-webpack-plugin-before-html-generation',
-          this.mergePolicy.bind(this)
+          this.mergePolicy.bind(this, compilation)
         );
         compilation.plugin(
           'html-webpack-plugin-after-html-processing',
