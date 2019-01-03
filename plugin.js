@@ -26,9 +26,16 @@ const defaultPolicy = {
 };
 
 const defaultAdditionalOpts = {
-  devAllowUnsafe: false,
   enabled: true,
-  hashingMethod: 'sha256'
+  hashingMethod: 'sha256',
+  hashEnabled: {
+    'script-src': true,
+    'style-src': true
+  },
+  nonceEnabled: {
+    'script-src': true,
+    'style-src': true
+  }
 };
 
 class CspHtmlWebpackPlugin {
@@ -42,7 +49,9 @@ class CspHtmlWebpackPlugin {
     this.cspPluginPolicy = Object.freeze(policy);
 
     // the additional options that this plugin allows
-    this.opts = Object.assign({}, defaultAdditionalOpts, additionalOpts);
+    this.opts = Object.freeze(
+      Object.assign({}, defaultAdditionalOpts, additionalOpts)
+    );
 
     // valid hashes from https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#Sources
     if (!['sha256', 'sha384', 'sha512'].includes(this.opts.hashingMethod)) {
@@ -53,31 +62,47 @@ class CspHtmlWebpackPlugin {
   }
 
   /**
-   * Build the eventual policy we want to use, combining default, csp instance and html webpack instance policies defined
-   * Latter policy rules always override former
+   * Builds options based on settings passed into the CspHtmlWebpackPlugin instance, and the HtmlWebpackPlugin instance
+   * Policy: combines default, csp instance and html webpack instance policies defined. Latter policy rules always override former
+   * HashEnabled: sets whether we should add hashes for inline scripts/styles
+   * NonceEnabled: sets whether we should add nonce attrs for external scripts/styles
    * @param {object} compilation - the webpack compilation object
    * @param {object} htmlPluginData - the HtmlWebpackPlugin data object
    * @param {function} compileCb - the callback function to continue webpack compilation
    */
-  mergePolicy(compilation, htmlPluginData, compileCb) {
-    // the policy passed in from the HtmlWebpackPlugin instance
-    this.htmlPluginPolicy = get(
-      htmlPluginData,
-      'plugin.options.cspPlugin.policy',
-      {}
-    );
-
+  mergeOptions(compilation, htmlPluginData, compileCb) {
+    // 1. Let's create the policy we want to use for this HtmlWebpackPlugin instance
     // CspHtmlWebpackPlugin and HtmlWebpackPlugin policies merged
-    this.userPolicy = Object.freeze(
-      Object.assign({}, this.cspPluginPolicy, this.htmlPluginPolicy)
+    const userPolicy = Object.freeze(
+      Object.assign(
+        {},
+        this.cspPluginPolicy,
+        get(htmlPluginData, 'plugin.options.cspPlugin.policy', {})
+      )
     );
 
     // defaultPolicy and userPolicy merged
-    this.policy = Object.freeze(
-      Object.assign({}, defaultPolicy, this.userPolicy)
+    this.policy = Object.freeze(Object.assign({}, defaultPolicy, userPolicy));
+
+    // and now validate it
+    this.validatePolicy(compilation);
+
+    // 2. Lets set which hashes and nonces are enabled for this HtmlWebpackPlugin instance
+    this.hashEnabled = Object.freeze(
+      Object.assign(
+        {},
+        this.opts.hashEnabled,
+        get(htmlPluginData, 'plugin.options.cspPlugin.hashEnabled', {})
+      )
     );
 
-    this.validatePolicy(compilation);
+    this.nonceEnabled = Object.freeze(
+      Object.assign(
+        {},
+        this.opts.nonceEnabled,
+        get(htmlPluginData, 'plugin.options.cspPlugin.nonceEnabled', {})
+      )
+    );
 
     return compileCb(null, htmlPluginData);
   }
@@ -144,21 +169,6 @@ class CspHtmlWebpackPlugin {
   }
 
   /**
-   * Returns whether the dev has defined unsafe-* in their policy and has set the flag devAllowUnsafe
-   * If so, we shouldn't append any shas/nonces to the policy
-   * @param policyName
-   * @return {boolean|any}
-   */
-  isDevForcingOwnUnsafePolicy(policyName) {
-    return (
-      this.opts.devAllowUnsafe === true &&
-      this.userPolicy[policyName] &&
-      (this.userPolicy[policyName].includes("'unsafe-inline'") ||
-        this.userPolicy[policyName].includes("'unsafe-eval'"))
-    );
-  }
-
-  /**
    * Create a random nonce which we will set onto our assets
    * @return {string}
    */
@@ -175,8 +185,8 @@ class CspHtmlWebpackPlugin {
    * @return {string[]}
    */
   setNonce($, policyName, selector) {
-    if (this.isDevForcingOwnUnsafePolicy(policyName)) {
-      // we don't want to add any nonce
+    if (this.nonceEnabled[policyName] === false) {
+      // we don't want to add any nonce for this specific policy
       return [];
     }
 
@@ -236,7 +246,8 @@ class CspHtmlWebpackPlugin {
    * @return {string[]}
    */
   getShas($, policyName, selector) {
-    if (this.isDevForcingOwnUnsafePolicy(policyName)) {
+    if (this.hashEnabled[policyName] === false) {
+      // we don't want to add any nonce for this specific policy
       return [];
     }
 
@@ -340,7 +351,7 @@ class CspHtmlWebpackPlugin {
             compilation
           ).beforeAssetTagGeneration.tapAsync(
             'CspHtmlWebpackPlugin',
-            this.mergePolicy.bind(this, compilation)
+            this.mergeOptions.bind(this, compilation)
           );
           HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tapAsync(
             'CspHtmlWebpackPlugin',
@@ -350,7 +361,7 @@ class CspHtmlWebpackPlugin {
           // HTMLWebpackPlugin@3
           compilation.hooks.htmlWebpackPluginBeforeHtmlGeneration.tapAsync(
             'CspHtmlWebpackPlugin',
-            this.mergePolicy.bind(this, compilation)
+            this.mergeOptions.bind(this, compilation)
           );
           compilation.hooks.htmlWebpackPluginAfterHtmlProcessing.tapAsync(
             'CspHtmlWebpackPlugin',
@@ -362,7 +373,7 @@ class CspHtmlWebpackPlugin {
       compiler.plugin('compilation', compilation => {
         compilation.plugin(
           'html-webpack-plugin-before-html-generation',
-          this.mergePolicy.bind(this, compilation)
+          this.mergeOptions.bind(this, compilation)
         );
         compilation.plugin(
           'html-webpack-plugin-after-html-processing',
