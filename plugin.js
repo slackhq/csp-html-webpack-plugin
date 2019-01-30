@@ -26,9 +26,16 @@ const defaultPolicy = {
 };
 
 const defaultAdditionalOpts = {
-  devAllowUnsafe: false,
   enabled: true,
-  hashingMethod: 'sha256'
+  hashingMethod: 'sha256',
+  hashEnabled: {
+    'script-src': true,
+    'style-src': true
+  },
+  nonceEnabled: {
+    'script-src': true,
+    'style-src': true
+  }
 };
 
 class CspHtmlWebpackPlugin {
@@ -38,12 +45,13 @@ class CspHtmlWebpackPlugin {
    * @param {object} additionalOpts - additional config options - see defaultAdditionalOpts above for options available
    */
   constructor(policy = {}, additionalOpts = {}) {
-    // the policy we want to use
-    this.policy = Object.freeze(Object.assign({}, defaultPolicy, policy));
-    this.userPolicy = Object.freeze(policy);
+    // the policy passed in from the CspHtmlWebpackPlugin instance
+    this.cspPluginPolicy = Object.freeze(policy);
 
     // the additional options that this plugin allows
-    this.opts = Object.assign({}, defaultAdditionalOpts, additionalOpts);
+    this.opts = Object.freeze(
+      Object.assign({}, defaultAdditionalOpts, additionalOpts)
+    );
 
     // valid hashes from https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#Sources
     if (!['sha256', 'sha384', 'sha512'].includes(this.opts.hashingMethod)) {
@@ -54,16 +62,99 @@ class CspHtmlWebpackPlugin {
   }
 
   /**
+   * Builds options based on settings passed into the CspHtmlWebpackPlugin instance, and the HtmlWebpackPlugin instance
+   * Policy: combines default, csp instance and html webpack instance policies defined. Latter policy rules always override former
+   * HashEnabled: sets whether we should add hashes for inline scripts/styles
+   * NonceEnabled: sets whether we should add nonce attrs for external scripts/styles
+   * @param {object} compilation - the webpack compilation object
+   * @param {object} htmlPluginData - the HtmlWebpackPlugin data object
+   * @param {function} compileCb - the callback function to continue webpack compilation
+   */
+  mergeOptions(compilation, htmlPluginData, compileCb) {
+    // 1. Let's create the policy we want to use for this HtmlWebpackPlugin instance
+    // CspHtmlWebpackPlugin and HtmlWebpackPlugin policies merged
+    const userPolicy = Object.freeze(
+      Object.assign(
+        {},
+        this.cspPluginPolicy,
+        get(htmlPluginData, 'plugin.options.cspPlugin.policy', {})
+      )
+    );
+
+    // defaultPolicy and userPolicy merged
+    this.policy = Object.freeze(Object.assign({}, defaultPolicy, userPolicy));
+
+    // and now validate it
+    this.validatePolicy(compilation);
+
+    // 2. Lets set which hashes and nonces are enabled for this HtmlWebpackPlugin instance
+    this.hashEnabled = Object.freeze(
+      Object.assign(
+        {},
+        this.opts.hashEnabled,
+        get(htmlPluginData, 'plugin.options.cspPlugin.hashEnabled', {})
+      )
+    );
+
+    this.nonceEnabled = Object.freeze(
+      Object.assign(
+        {},
+        this.opts.nonceEnabled,
+        get(htmlPluginData, 'plugin.options.cspPlugin.nonceEnabled', {})
+      )
+    );
+
+    return compileCb(null, htmlPluginData);
+  }
+
+  /**
+   * Validate the policy by making sure that all static sources have been wrapped in apostrophes
+   * i.e. policy should contain 'self' instead of self
+   * @param {object} compilation - the webpack compilation object
+   */
+  validatePolicy(compilation) {
+    const staticSources = [
+      'self',
+      'unsafe-inline',
+      'unsafe-eval',
+      'none',
+      'strict-dynamic',
+      'report-sample'
+    ];
+    const sourcesRegexes = staticSources.map(
+      source => new RegExp(`\\s${source}\\s`)
+    );
+
+    Object.keys(this.policy).forEach(key => {
+      const val = Array.isArray(this.policy[key])
+        ? compact(uniq(this.policy[key])).join(' ')
+        : this.policy[key];
+
+      for (let i = 0, len = sourcesRegexes.length; i < len; i += 1) {
+        if (` ${val} `.match(sourcesRegexes[i])) {
+          compilation.errors.push(
+            new Error(
+              `CSP: policy for ${key} contains ${
+                staticSources[i]
+              } which should be wrapped in apostrophes`
+            )
+          );
+        }
+      }
+    });
+  }
+
+  /**
    * Checks to see whether the plugin is enabled. this.opts.enabled can be a function or bool here
    * @param htmlPluginData - the htmlPluginData from compilation
    * @return {boolean} - whether the plugin is enabled or not
    */
   isEnabled(htmlPluginData) {
-    const disableCspPlugin = get(
+    const cspPluginEnabled = get(
       htmlPluginData,
-      'plugin.options.disableCspPlugin'
+      'plugin.options.cspPlugin.enabled'
     );
-    if (disableCspPlugin && disableCspPlugin === true) {
+    if (cspPluginEnabled === false) {
       // the HtmlWebpackPlugin instance has disabled the plugin
       return false;
     }
@@ -75,6 +166,62 @@ class CspHtmlWebpackPlugin {
 
     // otherwise assume it's a boolean
     return this.opts.enabled;
+  }
+
+  /**
+   * Create a random nonce which we will set onto our assets
+   * @return {string}
+   */
+  // eslint-disable-next-line class-methods-use-this
+  createNonce() {
+    return crypto.randomBytes(16).toString('base64');
+  }
+
+  /**
+   * Generates nonces for the policy / selector we define
+   * @param {object} $ - the Cheerio instance
+   * @param {string} policyName - one of 'script-src' and 'style-src'
+   * @param {string} selector - a Cheerio selector string for getting the hashable elements for this policy
+   * @return {string[]}
+   */
+  setNonce($, policyName, selector) {
+    if (this.nonceEnabled[policyName] === false) {
+      // we don't want to add any nonce for this specific policy
+      return [];
+    }
+
+    const policy = this.policy[policyName];
+    const policyStr = Array.isArray(policy) ? policy.join(' ') : policy;
+
+    // get a list of already defined urls for this policy type
+    const urls = policyStr.match(/https?:\/\/[^'"]+/g) || [];
+
+    // check if the user has defined 'strict-dynamic' in their policy
+    // if so, we will need to include the nonce even if the domain has been whitelisted for it
+    const hasStrictDynamic = policyStr.includes("'strict-dynamic'");
+
+    return $(selector)
+      .map((i, element) => {
+        // get the src/href and check if it's already been whitelisted by the user.
+        // if it has, and the dev hasn't defined strict-dynamic, there's no reason to add a nonce for it
+        if (!hasStrictDynamic) {
+          const srcOrHref = $(element).attr('src') || $(element).attr('href');
+          for (let j = 0, len = urls.length; j < len; j += 1) {
+            if (srcOrHref.startsWith(urls[j])) {
+              return null;
+            }
+          }
+        }
+
+        // create a nonce, and attach to the script tag
+        const nonce = this.createNonce();
+        $(element).attr('nonce', nonce);
+
+        // return in the format csp needs
+        return `'nonce-${nonce}'`;
+      })
+      .filter(entry => entry !== null)
+      .get();
   }
 
   /**
@@ -92,29 +239,21 @@ class CspHtmlWebpackPlugin {
   }
 
   /**
-   * Helper function to return the correct policy depending on whether the dev has allowed unsafe eval/inline or not
+   * Calculates shas of the policy / selector we define
    * @param {object} $ - the Cheerio instance
    * @param {string} policyName - one of 'script-src' and 'style-src'
    * @param {string} selector - a Cheerio selector string for getting the hashable elements for this policy
-   * @return {object} the new policy for `policyName`
+   * @return {string[]}
    */
-  createPolicyObj($, policyName, selector) {
-    if (
-      this.opts.devAllowUnsafe === true &&
-      this.userPolicy[policyName] &&
-      (this.userPolicy[policyName].includes("'unsafe-inline'") ||
-        this.userPolicy[policyName].includes("'unsafe-eval'"))
-    ) {
-      // the user has allowed us to override unsafe-*, and we found unsafe-* in their defined policy. Let's use it
-      return this.userPolicy[policyName];
+  getShas($, policyName, selector) {
+    if (this.hashEnabled[policyName] === false) {
+      // we don't want to add any nonce for this specific policy
+      return [];
     }
 
-    // otherwise hash all of the elements passed in
-    const hashes = $(selector)
+    return $(selector)
       .map((i, element) => this.hash($(element).html()))
       .get();
-
-    return flatten([this.policy[policyName]]).concat(hashes);
   }
 
   /**
@@ -129,6 +268,15 @@ class CspHtmlWebpackPlugin {
         const val = Array.isArray(policyObj[key])
           ? compact(uniq(policyObj[key])).join(' ')
           : policyObj[key];
+
+        // move strict dynamic to the end of the policy if it exists to be backwards compatible with csp2
+        // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#strict-dynamic
+        if (val.includes("'strict-dynamic'")) {
+          const newVal = `${val
+            .replace(/\s?'strict-dynamic'\s?/gi, ' ')
+            .trim()} 'strict-dynamic'`;
+          return `${key} ${newVal}`;
+        }
 
         return `${key} ${val}`;
       })
@@ -145,17 +293,12 @@ class CspHtmlWebpackPlugin {
       decodeEntities: false
     });
 
-    let metaTag = $('meta[http-equiv="Content-Security-Policy"]');
-
     // if not enabled, remove the empty tag
     if (!this.isEnabled(htmlPluginData)) {
-      metaTag.remove();
-
-      // eslint-disable-next-line no-param-reassign
-      htmlPluginData.html = $.html();
-
       return compileCb(null, htmlPluginData);
     }
+
+    let metaTag = $('meta[http-equiv="Content-Security-Policy"]');
 
     // Add element if it doesn't exist.
     if (!metaTag.length) {
@@ -165,21 +308,27 @@ class CspHtmlWebpackPlugin {
       metaTag.prependTo($('head'));
     }
 
-    // looks for script and style rules to hash
-    const scriptRule = this.createPolicyObj(
-      $,
-      'script-src',
-      'script:not([src])'
-    );
-    const styleRule = this.createPolicyObj($, 'style-src', 'style:not([href])');
+    // get all nonces for script and style tags
+    const scriptNonce = this.setNonce($, 'script-src', 'script[src]');
+    const styleNonce = this.setNonce($, 'style-src', 'link[rel="stylesheet"]');
+
+    // get all shas for script and style tags
+    const scriptShas = this.getShas($, 'script-src', 'script:not([src])');
+    const styleShas = this.getShas($, 'style-src', 'style:not([href])');
 
     // build the policy into the context attr of the csp meta tag
     metaTag.attr(
       'content',
       this.buildPolicy({
         ...this.policy,
-        'script-src': scriptRule,
-        'style-src': styleRule
+        'script-src': flatten([this.policy['script-src']]).concat(
+          scriptShas,
+          scriptNonce
+        ),
+        'style-src': flatten([this.policy['style-src']]).concat(
+          styleShas,
+          styleNonce
+        )
       })
     );
 
@@ -198,12 +347,22 @@ class CspHtmlWebpackPlugin {
       compiler.hooks.compilation.tap('CspHtmlWebpackPlugin', compilation => {
         if (HtmlWebpackPlugin && HtmlWebpackPlugin.getHooks) {
           // HTMLWebpackPlugin@4
+          HtmlWebpackPlugin.getHooks(
+            compilation
+          ).beforeAssetTagGeneration.tapAsync(
+            'CspHtmlWebpackPlugin',
+            this.mergeOptions.bind(this, compilation)
+          );
           HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tapAsync(
             'CspHtmlWebpackPlugin',
             this.processCsp.bind(this)
           );
         } else {
           // HTMLWebpackPlugin@3
+          compilation.hooks.htmlWebpackPluginBeforeHtmlGeneration.tapAsync(
+            'CspHtmlWebpackPlugin',
+            this.mergeOptions.bind(this, compilation)
+          );
           compilation.hooks.htmlWebpackPluginAfterHtmlProcessing.tapAsync(
             'CspHtmlWebpackPlugin',
             this.processCsp.bind(this)
@@ -212,6 +371,10 @@ class CspHtmlWebpackPlugin {
       });
     } else {
       compiler.plugin('compilation', compilation => {
+        compilation.plugin(
+          'html-webpack-plugin-before-html-generation',
+          this.mergeOptions.bind(this, compilation)
+        );
         compilation.plugin(
           'html-webpack-plugin-after-html-processing',
           this.processCsp.bind(this)

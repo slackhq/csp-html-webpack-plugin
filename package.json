@@ -1,13 +1,13 @@
 {
   "name": "csp-html-webpack-plugin",
-  "version": "2.5.0",
+  "version": "3.0.0-beta.2",
   "description": "A plugin which, when combined with HTMLWebpackPlugin, adds CSP tags to the HTML output",
   "main": "plugin.js",
   "scripts": {
     "eslint": "eslint .",
     "eslint:fix": "eslint . --fix",
     "jest": "jest --config=./jest.config.js plugin.jest.js",
-    "jest:watch": "jest --watch --config=./jest.config.js plugin.jest.js",
+    "jest:watch": "jest --watch --verbose=false --config=./jest.config.js plugin.jest.js",
     "jest:coverage:generate": "jest --coverage --config=./jest.config.js plugin.jest.js",
     "jest:coverage:clean": "rm -rf ./coverage",
     "jest:coverage:upload": "npx codecov --token=252086ef-c14d-4f29-ab36-720265249fa2",
