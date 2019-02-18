@@ -75,7 +75,6 @@ If 2 policies have the same key/policy rule, the former policy will override the
 
 ```
 {
-  devAllowUnsafe: false,
   enabled: true
   hashingMethod: 'sha256',
   hashEnabled: {
@@ -118,7 +117,6 @@ new CspHtmlWebpackPlugin({
   'script-src': ["'unsafe-inline'", "'self'", "'unsafe-eval'"],
   'style-src': ["'unsafe-inline'", "'self'", "'unsafe-eval'"]
 }, {
-  devAllowUnsafe: false,
   enabled: true
   hashingMethod: 'sha256',
   hashEnabled: {
