@@ -117,7 +117,7 @@ new CspHtmlWebpackPlugin({
   'script-src': ["'unsafe-inline'", "'self'", "'unsafe-eval'"],
   'style-src': ["'unsafe-inline'", "'self'", "'unsafe-eval'"]
 }, {
-  enabled: true
+  enabled: true,
   hashingMethod: 'sha256',
   hashEnabled: {
     'script-src': true,
