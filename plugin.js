@@ -357,7 +357,10 @@ class CspHtmlWebpackPlugin {
             'CspHtmlWebpackPlugin',
             this.processCsp.bind(this)
           );
-        } else {
+        } else if (
+          compilation.hooks.htmlWebpackPluginBeforeHtmlGeneration &&
+          compilation.hooks.htmlWebpackPluginAfterHtmlProcessing
+        ) {
           // HTMLWebpackPlugin@3
           compilation.hooks.htmlWebpackPluginBeforeHtmlGeneration.tapAsync(
             'CspHtmlWebpackPlugin',
