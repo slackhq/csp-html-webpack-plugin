@@ -134,9 +134,7 @@ class CspHtmlWebpackPlugin {
         if (` ${val} `.match(sourcesRegexes[i])) {
           compilation.errors.push(
             new Error(
-              `CSP: policy for ${key} contains ${
-                staticSources[i]
-              } which should be wrapped in apostrophes`
+              `CSP: policy for ${key} contains ${staticSources[i]} which should be wrapped in apostrophes`
             )
           );
         }
