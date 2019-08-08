@@ -16,7 +16,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "git@slack-github.com:anuj/csp-html-webpack-plugin.git"
+    "url": "git@github.com:slackhq/csp-html-webpack-plugin.git"
   },
   "keywords": [
     "webpack",
