@@ -41,6 +41,7 @@ This `CspHtmlWebpackPlugin` accepts 2 params with the following structure:
   - `{string}` hashingMethod - accepts 'sha256', 'sha384', 'sha512' - your node version must also accept this hashing method.
   - `{object}` hashEnabled - a `<string, boolean>` entry for which policy rules are allowed to include hashes
   - `{object}` nonceEnabled - a `<string, boolean>` entry for which policy rules are allowed to include nonces
+  - `{Function}` output (optional) - optional callback function receiving the computed CSP policy to implement custom logic instead of including meta tag.
 
 The plugin also adds a new config option onto each `HtmlWebpackPlugin` instance:
 

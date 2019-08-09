@@ -296,16 +296,6 @@ class CspHtmlWebpackPlugin {
       return compileCb(null, htmlPluginData);
     }
 
-    let metaTag = $('meta[http-equiv="Content-Security-Policy"]');
-
-    // Add element if it doesn't exist.
-    if (!metaTag.length) {
-      metaTag = cheerio.load('<meta http-equiv="Content-Security-Policy">')(
-        'meta'
-      );
-      metaTag.prependTo($('head'));
-    }
-
     // get all nonces for script and style tags
     const scriptNonce = this.setNonce($, 'script-src', 'script[src]');
     const styleNonce = this.setNonce($, 'style-src', 'link[rel="stylesheet"]');
@@ -314,21 +304,36 @@ class CspHtmlWebpackPlugin {
     const scriptShas = this.getShas($, 'script-src', 'script:not([src])');
     const styleShas = this.getShas($, 'style-src', 'style:not([href])');
 
-    // build the policy into the context attr of the csp meta tag
-    metaTag.attr(
-      'content',
-      this.buildPolicy({
-        ...this.policy,
-        'script-src': flatten([this.policy['script-src']]).concat(
-          scriptShas,
-          scriptNonce
-        ),
-        'style-src': flatten([this.policy['style-src']]).concat(
-          styleShas,
-          styleNonce
-        )
-      })
-    );
+    // build the CSP policy
+    const policy = this.buildPolicy({
+      ...this.policy,
+      'script-src': flatten([this.policy['script-src']]).concat(
+        scriptShas,
+        scriptNonce
+      ),
+      'style-src': flatten([this.policy['style-src']]).concat(
+        styleShas,
+        styleNonce
+      )
+    });
+
+    // Execute output callback if is defined
+    if (isFunction(this.opts.output)) {
+      this.opts.output(policy);
+    } else {
+      let metaTag = $('meta[http-equiv="Content-Security-Policy"]');
+
+      // Add element if it doesn't exist.
+      if (!metaTag.length) {
+        metaTag = cheerio.load('<meta http-equiv="Content-Security-Policy">')(
+          'meta'
+        );
+        metaTag.prependTo($('head'));
+      }
+
+      // includes the policy into the context attr of the csp meta tag
+      metaTag.attr('content', policy);
+    }
 
     // eslint-disable-next-line no-param-reassign
     htmlPluginData.html = $.html();

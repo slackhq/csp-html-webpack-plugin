@@ -852,4 +852,29 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
   });
+
+  describe.only('Plugin output callback', () => {
+    it("doesn't modify the html if enabled is the bool false", done => {
+      // eslint-disable-next-line no-unused-vars
+      const mockCallback = jest.fn(csp => {});
+      const config = createWebpackConfig([
+        new HtmlWebpackPlugin({
+          filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html')
+        }),
+        new CspHtmlWebpackPlugin({}, { output: mockCallback })
+      ]);
+
+      webpackCompile(config, csps => {
+        const expected =
+          "base-uri 'self';" +
+          " object-src 'none';" +
+          " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'nonce-mockedbase64string-1';" +
+          " style-src 'unsafe-inline' 'self' 'unsafe-eval'";
+
+        expect(mockCallback).toBeCalledWith(expected);
+        expect(csps['index.html']).not.toEqual(expected);
+        done();
+      });
+    });
+  });
 });
