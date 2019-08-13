@@ -14,6 +14,8 @@
     "jest:coverage": "npm run jest:coverage:clean && npm run jest:coverage:generate && npm run jest:coverage:upload",
     "test": "npm run eslint && npm run jest && npm run jest:coverage"
   },
+  "homepage": "https://github.com/slackhq/csp-html-webpack-plugin",
+  "bugs": "https://github.com/slackhq/csp-html-webpack-plugin/issues",
   "repository": {
     "type": "git",
     "url": "git@github.com:slackhq/csp-html-webpack-plugin.git"
