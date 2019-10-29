@@ -49,9 +49,7 @@ class CspHtmlWebpackPlugin {
     this.cspPluginPolicy = Object.freeze(policy);
 
     // the additional options that this plugin allows
-    this.opts = Object.freeze(
-      Object.assign({}, defaultAdditionalOpts, additionalOpts)
-    );
+    this.opts = Object.freeze({ ...defaultAdditionalOpts, ...additionalOpts });
 
     // valid hashes from https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#Sources
     if (!['sha256', 'sha384', 'sha512'].includes(this.opts.hashingMethod)) {
@@ -73,36 +71,27 @@ class CspHtmlWebpackPlugin {
   mergeOptions(compilation, htmlPluginData, compileCb) {
     // 1. Let's create the policy we want to use for this HtmlWebpackPlugin instance
     // CspHtmlWebpackPlugin and HtmlWebpackPlugin policies merged
-    const userPolicy = Object.freeze(
-      Object.assign(
-        {},
-        this.cspPluginPolicy,
-        get(htmlPluginData, 'plugin.options.cspPlugin.policy', {})
-      )
-    );
+    const userPolicy = Object.freeze({
+      ...this.cspPluginPolicy,
+      ...get(htmlPluginData, 'plugin.options.cspPlugin.policy', {})
+    });
 
     // defaultPolicy and userPolicy merged
-    this.policy = Object.freeze(Object.assign({}, defaultPolicy, userPolicy));
+    this.policy = Object.freeze({ ...defaultPolicy, ...userPolicy });
 
     // and now validate it
     this.validatePolicy(compilation);
 
     // 2. Lets set which hashes and nonces are enabled for this HtmlWebpackPlugin instance
-    this.hashEnabled = Object.freeze(
-      Object.assign(
-        {},
-        this.opts.hashEnabled,
-        get(htmlPluginData, 'plugin.options.cspPlugin.hashEnabled', {})
-      )
-    );
+    this.hashEnabled = Object.freeze({
+      ...this.opts.hashEnabled,
+      ...get(htmlPluginData, 'plugin.options.cspPlugin.hashEnabled', {})
+    });
 
-    this.nonceEnabled = Object.freeze(
-      Object.assign(
-        {},
-        this.opts.nonceEnabled,
-        get(htmlPluginData, 'plugin.options.cspPlugin.nonceEnabled', {})
-      )
-    );
+    this.nonceEnabled = Object.freeze({
+      ...this.opts.nonceEnabled,
+      ...get(htmlPluginData, 'plugin.options.cspPlugin.nonceEnabled', {})
+    });
 
     return compileCb(null, htmlPluginData);
   }
