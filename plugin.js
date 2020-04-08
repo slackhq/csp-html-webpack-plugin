@@ -18,6 +18,31 @@ try {
   }
 }
 
+/**
+ * The default function for adding the CSP to the head of a document
+ * Can be overwritten to allow the developer to process the CSP in their own way
+ * @param {string} builtPolicy
+ * @param {object} htmlPluginData
+ * @param {object} $
+ */
+const defaultProcessFn = (builtPolicy, htmlPluginData, $) => {
+  let metaTag = $('meta[http-equiv="Content-Security-Policy"]');
+
+  // Add element if it doesn't exist.
+  if (!metaTag.length) {
+    metaTag = cheerio.load('<meta http-equiv="Content-Security-Policy">')(
+      'meta'
+    );
+    metaTag.prependTo($('head'));
+  }
+
+  // build the policy into the context attr of the csp meta tag
+  metaTag.attr('content', builtPolicy);
+
+  // eslint-disable-next-line no-param-reassign
+  htmlPluginData.html = $.html();
+};
+
 const defaultPolicy = {
   'base-uri': "'self'",
   'object-src': "'none'",
@@ -35,7 +60,8 @@ const defaultAdditionalOpts = {
   nonceEnabled: {
     'script-src': true,
     'style-src': true
-  }
+  },
+  processFn: defaultProcessFn
 };
 
 class CspHtmlWebpackPlugin {
@@ -92,6 +118,13 @@ class CspHtmlWebpackPlugin {
       ...this.opts.nonceEnabled,
       ...get(htmlPluginData, 'plugin.options.cspPlugin.nonceEnabled', {})
     });
+
+    // 3. Get the processFn for this HtmlWebpackPlugin instance.
+    this.processFn = get(
+      htmlPluginData,
+      'plugin.options.cspPlugin.processFn',
+      this.opts.processFn || defaultProcessFn
+    );
 
     return compileCb(null, htmlPluginData);
   }
@@ -285,16 +318,6 @@ class CspHtmlWebpackPlugin {
       return compileCb(null, htmlPluginData);
     }
 
-    let metaTag = $('meta[http-equiv="Content-Security-Policy"]');
-
-    // Add element if it doesn't exist.
-    if (!metaTag.length) {
-      metaTag = cheerio.load('<meta http-equiv="Content-Security-Policy">')(
-        'meta'
-      );
-      metaTag.prependTo($('head'));
-    }
-
     // get all nonces for script and style tags
     const scriptNonce = this.setNonce($, 'script-src', 'script[src]');
     const styleNonce = this.setNonce($, 'style-src', 'link[rel="stylesheet"]');
@@ -303,24 +326,19 @@ class CspHtmlWebpackPlugin {
     const scriptShas = this.getShas($, 'script-src', 'script:not([src])');
     const styleShas = this.getShas($, 'style-src', 'style:not([href])');
 
-    // build the policy into the context attr of the csp meta tag
-    metaTag.attr(
-      'content',
-      this.buildPolicy({
-        ...this.policy,
-        'script-src': flatten([this.policy['script-src']]).concat(
-          scriptShas,
-          scriptNonce
-        ),
-        'style-src': flatten([this.policy['style-src']]).concat(
-          styleShas,
-          styleNonce
-        )
-      })
-    );
+    const builtPolicy = this.buildPolicy({
+      ...this.policy,
+      'script-src': flatten([this.policy['script-src']]).concat(
+        scriptShas,
+        scriptNonce
+      ),
+      'style-src': flatten([this.policy['style-src']]).concat(
+        styleShas,
+        styleNonce
+      )
+    });
 
-    // eslint-disable-next-line no-param-reassign
-    htmlPluginData.html = $.html();
+    this.processFn(builtPolicy, htmlPluginData, $);
 
     return compileCb(null, htmlPluginData);
   }

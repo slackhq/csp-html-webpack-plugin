@@ -852,4 +852,91 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
   });
+
+  describe('Custom process function', () => {
+    it('Allows the process function to be overwritten', done => {
+      const processFn = jest.fn();
+      const builtPolicy = `base-uri 'self'; object-src 'none'; script-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-ixjZMYNfWQWawUHioWOx2jBsTmfxucX7IlwsMt2jWvc=' 'nonce-mockedbase64string-1' 'nonce-mockedbase64string-2'; style-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-MqG77yUiqBo4MMVZAl09WSafnQY4Uu3cSdZPKxaf9sQ=' 'nonce-mockedbase64string-3'`;
+
+      const config = createWebpackConfig([
+        new HtmlWebpackPlugin({
+          filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
+          template: path.join(
+            __dirname,
+            'test-utils',
+            'fixtures',
+            'with-script-and-style.html'
+          )
+        }),
+        new CspHtmlWebpackPlugin(
+          {},
+          {
+            processFn
+          }
+        )
+      ]);
+
+      webpackCompile(config, csps => {
+        // we've overwritten the default processFn, which writes the policy into the html file
+        // so it won't exist in this object anymore.
+        expect(csps['index.html']).toBeUndefined();
+
+        // The processFn should receive the built policy as it's first arg
+        expect(processFn).toHaveBeenCalledWith(
+          builtPolicy,
+          expect.anything(),
+          expect.anything()
+        );
+
+        done();
+      });
+    });
+
+    it('only overwrites the processFn for the HtmlWebpackInstance where it has been defined', done => {
+      const processFn = jest.fn();
+      const index1BuiltPolicy = `base-uri 'self'; object-src 'none'; script-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-ixjZMYNfWQWawUHioWOx2jBsTmfxucX7IlwsMt2jWvc=' 'nonce-mockedbase64string-1' 'nonce-mockedbase64string-2'; style-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-MqG77yUiqBo4MMVZAl09WSafnQY4Uu3cSdZPKxaf9sQ=' 'nonce-mockedbase64string-3'`;
+      const index2BuiltPolicy = `base-uri 'self'; object-src 'none'; script-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-ixjZMYNfWQWawUHioWOx2jBsTmfxucX7IlwsMt2jWvc=' 'nonce-mockedbase64string-4' 'nonce-mockedbase64string-5'; style-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-MqG77yUiqBo4MMVZAl09WSafnQY4Uu3cSdZPKxaf9sQ=' 'nonce-mockedbase64string-6'`;
+
+      const config = createWebpackConfig([
+        new HtmlWebpackPlugin({
+          filename: path.join(WEBPACK_OUTPUT_DIR, 'index-1.html'),
+          template: path.join(
+            __dirname,
+            'test-utils',
+            'fixtures',
+            'with-script-and-style.html'
+          ),
+          cspPlugin: {
+            processFn
+          }
+        }),
+        new HtmlWebpackPlugin({
+          filename: path.join(WEBPACK_OUTPUT_DIR, 'index-2.html'),
+          template: path.join(
+            __dirname,
+            'test-utils',
+            'fixtures',
+            'with-script-and-style.html'
+          )
+        }),
+        new CspHtmlWebpackPlugin()
+      ]);
+
+      webpackCompile(config, csps => {
+        // it won't exist in the html file since we overwrote processFn
+        expect(csps['index-1.html']).toBeUndefined();
+        // processFn wasn't overwritten here, so this should be added to the html file as normal
+        expect(csps['index-2.html']).toEqual(index2BuiltPolicy);
+
+        // index-1.html should have used our custom function defined
+        expect(processFn).toHaveBeenCalledWith(
+          index1BuiltPolicy,
+          expect.anything(),
+          expect.anything()
+        );
+
+        done();
+      });
+    });
+  });
 });
