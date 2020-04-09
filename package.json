@@ -10,7 +10,7 @@
     "jest:watch": "jest --watch --verbose=false --config=./jest.config.js plugin.jest.js",
     "jest:coverage:generate": "jest --coverage --config=./jest.config.js plugin.jest.js",
     "jest:coverage:clean": "rm -rf ./coverage",
-    "jest:coverage:upload": "npx codecov --token=252086ef-c14d-4f29-ab36-720265249fa2",
+    "jest:coverage:upload": "npx codecov",
     "jest:coverage": "npm run jest:coverage:clean && npm run jest:coverage:generate && npm run jest:coverage:upload",
     "test": "npm run eslint && npm run jest && npm run jest:coverage"
   },
