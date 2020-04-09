@@ -36,7 +36,7 @@ function webpackCompile(
     // file all html files and convert them into cheerio objects so they can be queried
     const htmlFilesCheerio = fileSystem
       .readdirSync(WEBPACK_OUTPUT_DIR)
-      .filter(file => file.endsWith('.html'))
+      .filter((file) => file.endsWith('.html'))
       .reduce(
         (obj, file) => ({
           ...obj,
@@ -44,7 +44,7 @@ function webpackCompile(
             fileSystem
               .readFileSync(path.join(WEBPACK_OUTPUT_DIR, file))
               .toString()
-          )
+          ),
         }),
         {}
       );
@@ -54,7 +54,7 @@ function webpackCompile(
       const $ = htmlFilesCheerio[file];
       return {
         ...obj,
-        [file]: $('meta[http-equiv="Content-Security-Policy"]').attr('content')
+        [file]: $('meta[http-equiv="Content-Security-Policy"]').attr('content'),
       };
     }, {});
 
@@ -81,14 +81,14 @@ function createWebpackConfig(plugins, publicPath = undefined) {
     output: {
       path: WEBPACK_OUTPUT_DIR,
       publicPath,
-      filename: 'index.bundle.js'
+      filename: 'index.bundle.js',
     },
-    plugins
+    plugins,
   };
 }
 
 module.exports = {
   WEBPACK_OUTPUT_DIR,
   webpackCompile,
-  createWebpackConfig
+  createWebpackConfig,
 };

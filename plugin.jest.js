@@ -4,7 +4,7 @@ const HtmlWebpackPlugin = require('html-webpack-plugin');
 const {
   WEBPACK_OUTPUT_DIR,
   createWebpackConfig,
-  webpackCompile
+  webpackCompile,
 } = require('./test-utils/webpack-helpers');
 const CspHtmlWebpackPlugin = require('./plugin');
 
@@ -34,7 +34,7 @@ describe('CspHtmlWebpackPlugin', () => {
         new CspHtmlWebpackPlugin(
           {},
           {
-            hashingMethod: 'invalid'
+            hashingMethod: 'invalid',
           }
         );
       }).toThrow(new Error(`'invalid' is not a valid hashing method`));
@@ -47,9 +47,9 @@ describe('CspHtmlWebpackPlugin', () => {
         'unsafe-eval',
         'none',
         'strict-dynamic',
-        'report-sample'
-      ].forEach(source => {
-        it(`throws an error if '${source}' is not wrapped in apostrophes in an array defined policy`, done => {
+        'report-sample',
+      ].forEach((source) => {
+        it(`throws an error if '${source}' is not wrapped in apostrophes in an array defined policy`, (done) => {
           const config = createWebpackConfig([
             new HtmlWebpackPlugin({
               filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
@@ -58,11 +58,11 @@ describe('CspHtmlWebpackPlugin', () => {
                 'test-utils',
                 'fixtures',
                 'with-nothing.html'
-              )
+              ),
             }),
             new CspHtmlWebpackPlugin({
-              'script-src': [source]
-            })
+              'script-src': [source],
+            }),
           ]);
 
           webpackCompile(
@@ -76,12 +76,12 @@ describe('CspHtmlWebpackPlugin', () => {
               done();
             },
             {
-              expectError: true
+              expectError: true,
             }
           );
         });
 
-        it(`throws an error if '${source}' is not wrapped in apostrophes in a string defined policy`, done => {
+        it(`throws an error if '${source}' is not wrapped in apostrophes in a string defined policy`, (done) => {
           const config = createWebpackConfig([
             new HtmlWebpackPlugin({
               filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
@@ -90,11 +90,11 @@ describe('CspHtmlWebpackPlugin', () => {
                 'test-utils',
                 'fixtures',
                 'with-nothing.html'
-              )
+              ),
             }),
             new CspHtmlWebpackPlugin({
-              'script-src': source
-            })
+              'script-src': source,
+            }),
           ]);
 
           webpackCompile(
@@ -108,7 +108,7 @@ describe('CspHtmlWebpackPlugin', () => {
               done();
             },
             {
-              expectError: true
+              expectError: true,
             }
           );
         });
@@ -117,7 +117,7 @@ describe('CspHtmlWebpackPlugin', () => {
   });
 
   describe('Adding sha and nonce checksums', () => {
-    it('inserts the default policy, including sha-256 hashes of other inline scripts and styles found, and nonce hashes of external scripts found', done => {
+    it('inserts the default policy, including sha-256 hashes of other inline scripts and styles found, and nonce hashes of external scripts found', (done) => {
       const config = createWebpackConfig([
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
@@ -126,12 +126,12 @@ describe('CspHtmlWebpackPlugin', () => {
             'test-utils',
             'fixtures',
             'with-script-and-style.html'
-          )
+          ),
         }),
-        new CspHtmlWebpackPlugin()
+        new CspHtmlWebpackPlugin(),
       ]);
 
-      webpackCompile(config, csps => {
+      webpackCompile(config, (csps) => {
         const expected =
           "base-uri 'self';" +
           " object-src 'none';" +
@@ -143,7 +143,7 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
 
-    it('inserts a custom policy if one is defined', done => {
+    it('inserts a custom policy if one is defined', (done) => {
       const config = createWebpackConfig([
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
@@ -152,18 +152,18 @@ describe('CspHtmlWebpackPlugin', () => {
             'test-utils',
             'fixtures',
             'with-nothing.html'
-          )
+          ),
         }),
         new CspHtmlWebpackPlugin({
           'base-uri': ["'self'", 'https://slack.com'],
           'font-src': ["'self'", "'https://a-slack-edge.com'"],
           'script-src': ["'self'"],
           'style-src': ["'self'"],
-          'connect-src': ["'self'"]
-        })
+          'connect-src': ["'self'"],
+        }),
       ]);
 
-      webpackCompile(config, csps => {
+      webpackCompile(config, (csps) => {
         const expected =
           "base-uri 'self' https://slack.com;" +
           " object-src 'none';" +
@@ -177,7 +177,7 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
 
-    it('handles string values for policies where hashes and nonces are appended', done => {
+    it('handles string values for policies where hashes and nonces are appended', (done) => {
       const config = createWebpackConfig([
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
@@ -186,15 +186,15 @@ describe('CspHtmlWebpackPlugin', () => {
             'test-utils',
             'fixtures',
             'with-script-and-style.html'
-          )
+          ),
         }),
         new CspHtmlWebpackPlugin({
           'script-src': "'self'",
-          'style-src': "'self'"
-        })
+          'style-src': "'self'",
+        }),
       ]);
 
-      webpackCompile(config, csps => {
+      webpackCompile(config, (csps) => {
         const expected =
           "base-uri 'self';" +
           " object-src 'none';" +
@@ -206,7 +206,7 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
 
-    it("doesn't add nonces for scripts / styles generated where their host has already been defined in the CSP, and 'strict-dynamic' doesn't exist in the policy", done => {
+    it("doesn't add nonces for scripts / styles generated where their host has already been defined in the CSP, and 'strict-dynamic' doesn't exist in the policy", (done) => {
       const config = createWebpackConfig(
         [
           new HtmlWebpackPlugin({
@@ -216,12 +216,12 @@ describe('CspHtmlWebpackPlugin', () => {
               'test-utils',
               'fixtures',
               'with-script-and-style.html'
-            )
+            ),
           }),
           new CspHtmlWebpackPlugin({
             'script-src': ["'self'", 'https://my.cdn.com'],
-            'style-src': ["'self'"]
-          })
+            'style-src': ["'self'"],
+          }),
         ],
         'https://my.cdn.com/'
       );
@@ -256,7 +256,7 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
 
-    it("continues to add nonces to scripts / styles even if the host has already been whitelisted due to 'strict-dynamic' existing in the policy", done => {
+    it("continues to add nonces to scripts / styles even if the host has already been whitelisted due to 'strict-dynamic' existing in the policy", (done) => {
       const config = createWebpackConfig(
         [
           new HtmlWebpackPlugin({
@@ -266,12 +266,12 @@ describe('CspHtmlWebpackPlugin', () => {
               'test-utils',
               'fixtures',
               'with-script-and-style.html'
-            )
+            ),
           }),
           new CspHtmlWebpackPlugin({
             'script-src': ["'self'", "'strict-dynamic'", 'https://my.cdn.com'],
-            'style-src': ["'self'"]
-          })
+            'style-src': ["'self'"],
+          }),
         ],
         'https://my.cdn.com/'
       );
@@ -309,7 +309,7 @@ describe('CspHtmlWebpackPlugin', () => {
     });
 
     describe('HtmlWebpackPlugin defined policy', () => {
-      it('inserts a custom policy from a specific HtmlWebpackPlugin instance, if one is defined', done => {
+      it('inserts a custom policy from a specific HtmlWebpackPlugin instance, if one is defined', (done) => {
         const config = createWebpackConfig([
           new HtmlWebpackPlugin({
             filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
@@ -325,14 +325,14 @@ describe('CspHtmlWebpackPlugin', () => {
                 'font-src': ["'self'", "'https://a-slack-edge.com'"],
                 'script-src': ["'self'"],
                 'style-src': ["'self'"],
-                'connect-src': ["'self'"]
-              }
-            }
+                'connect-src': ["'self'"],
+              },
+            },
           }),
-          new CspHtmlWebpackPlugin()
+          new CspHtmlWebpackPlugin(),
         ]);
 
-        webpackCompile(config, csps => {
+        webpackCompile(config, (csps) => {
           const expected =
             "base-uri 'self' https://slack.com;" +
             " object-src 'none';" +
@@ -346,7 +346,7 @@ describe('CspHtmlWebpackPlugin', () => {
         });
       });
 
-      it('merges and overwrites policies, with a html webpack plugin instance policy taking precedence, followed by the csp instance, and then the default policy', done => {
+      it('merges and overwrites policies, with a html webpack plugin instance policy taking precedence, followed by the csp instance, and then the default policy', (done) => {
         const config = createWebpackConfig([
           new HtmlWebpackPlugin({
             filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
@@ -360,18 +360,18 @@ describe('CspHtmlWebpackPlugin', () => {
               policy: {
                 'font-src': [
                   "'https://a-slack-edge.com'",
-                  "'https://b-slack-edge.com'"
-                ]
-              }
-            }
+                  "'https://b-slack-edge.com'",
+                ],
+              },
+            },
           }),
           new CspHtmlWebpackPlugin({
             'base-uri': ["'self'", 'https://slack.com'],
-            'font-src': ["'self'"]
-          })
+            'font-src': ["'self'"],
+          }),
         ]);
 
-        webpackCompile(config, csps => {
+        webpackCompile(config, (csps) => {
           const expected =
             "base-uri 'self' https://slack.com;" + // this should be included as it's not defined in the HtmlWebpackPlugin instance
             " object-src 'none';" + // this comes from the default policy
@@ -384,7 +384,7 @@ describe('CspHtmlWebpackPlugin', () => {
         });
       });
 
-      it('only adds a custom policy to the html file which has a policy defined; uses the default policy for any others', done => {
+      it('only adds a custom policy to the html file which has a policy defined; uses the default policy for any others', (done) => {
         const config = createWebpackConfig([
           new HtmlWebpackPlugin({
             filename: path.join(WEBPACK_OUTPUT_DIR, 'index-csp.html'),
@@ -397,9 +397,9 @@ describe('CspHtmlWebpackPlugin', () => {
             cspPlugin: {
               policy: {
                 'script-src': ["'https://a-slack-edge.com'"],
-                'style-src': ["'https://b-slack-edge.com'"]
-              }
-            }
+                'style-src': ["'https://b-slack-edge.com'"],
+              },
+            },
           }),
           new HtmlWebpackPlugin({
             filename: path.join(WEBPACK_OUTPUT_DIR, 'index-no-csp.html'),
@@ -408,12 +408,12 @@ describe('CspHtmlWebpackPlugin', () => {
               'test-utils',
               'fixtures',
               'with-nothing.html'
-            )
+            ),
           }),
-          new CspHtmlWebpackPlugin()
+          new CspHtmlWebpackPlugin(),
         ]);
 
-        webpackCompile(config, csps => {
+        webpackCompile(config, (csps) => {
           const expectedCustom =
             "base-uri 'self';" +
             " object-src 'none';" +
@@ -435,7 +435,7 @@ describe('CspHtmlWebpackPlugin', () => {
   });
 
   describe('Hash / Nonce enabled check', () => {
-    it("doesn't add hashes to any policy rule if that policy rule has been globally disabled", done => {
+    it("doesn't add hashes to any policy rule if that policy rule has been globally disabled", (done) => {
       const config = createWebpackConfig([
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index-1.html'),
@@ -444,7 +444,7 @@ describe('CspHtmlWebpackPlugin', () => {
             'test-utils',
             'fixtures',
             'with-script-and-style.html'
-          )
+          ),
         }),
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index-2.html'),
@@ -453,20 +453,20 @@ describe('CspHtmlWebpackPlugin', () => {
             'test-utils',
             'fixtures',
             'with-script-and-style.html'
-          )
+          ),
         }),
         new CspHtmlWebpackPlugin(
           {},
           {
             hashEnabled: {
               'script-src': false,
-              'style-src': false
-            }
+              'style-src': false,
+            },
           }
-        )
+        ),
       ]);
 
-      webpackCompile(config, csps => {
+      webpackCompile(config, (csps) => {
         const expected1 =
           "base-uri 'self';" +
           " object-src 'none';" +
@@ -487,7 +487,7 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
 
-    it("doesn't add nonces to any policy rule if that policy rule has been globally disabled", done => {
+    it("doesn't add nonces to any policy rule if that policy rule has been globally disabled", (done) => {
       const config = createWebpackConfig([
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index-1.html'),
@@ -496,7 +496,7 @@ describe('CspHtmlWebpackPlugin', () => {
             'test-utils',
             'fixtures',
             'with-script-and-style.html'
-          )
+          ),
         }),
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index-2.html'),
@@ -505,20 +505,20 @@ describe('CspHtmlWebpackPlugin', () => {
             'test-utils',
             'fixtures',
             'with-script-and-style.html'
-          )
+          ),
         }),
         new CspHtmlWebpackPlugin(
           {},
           {
             nonceEnabled: {
               'script-src': false,
-              'style-src': false
-            }
+              'style-src': false,
+            },
           }
-        )
+        ),
       ]);
 
-      webpackCompile(config, csps => {
+      webpackCompile(config, (csps) => {
         const expected1 =
           "base-uri 'self';" +
           " object-src 'none';" +
@@ -539,7 +539,7 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
 
-    it("doesn't add hashes to a specific policy rule if that policy rule has been disabled for that instance of HtmlWebpackPlugin", done => {
+    it("doesn't add hashes to a specific policy rule if that policy rule has been disabled for that instance of HtmlWebpackPlugin", (done) => {
       const config = createWebpackConfig([
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index-no-hashes.html'),
@@ -552,9 +552,9 @@ describe('CspHtmlWebpackPlugin', () => {
           cspPlugin: {
             hashEnabled: {
               'script-src': false,
-              'style-src': false
-            }
-          }
+              'style-src': false,
+            },
+          },
         }),
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index-hashes.html'),
@@ -563,12 +563,12 @@ describe('CspHtmlWebpackPlugin', () => {
             'test-utils',
             'fixtures',
             'with-script-and-style.html'
-          )
+          ),
         }),
-        new CspHtmlWebpackPlugin()
+        new CspHtmlWebpackPlugin(),
       ]);
 
-      webpackCompile(config, csps => {
+      webpackCompile(config, (csps) => {
         const expectedNoHashes =
           "base-uri 'self';" +
           " object-src 'none';" +
@@ -589,7 +589,7 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
 
-    it("doesn't add nonces to a specific policy rule if that policy rule has been disabled for that instance of HtmlWebpackPlugin", done => {
+    it("doesn't add nonces to a specific policy rule if that policy rule has been disabled for that instance of HtmlWebpackPlugin", (done) => {
       const config = createWebpackConfig([
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index-no-nonce.html'),
@@ -602,9 +602,9 @@ describe('CspHtmlWebpackPlugin', () => {
           cspPlugin: {
             nonceEnabled: {
               'script-src': false,
-              'style-src': false
-            }
-          }
+              'style-src': false,
+            },
+          },
         }),
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index-nonce.html'),
@@ -613,12 +613,12 @@ describe('CspHtmlWebpackPlugin', () => {
             'test-utils',
             'fixtures',
             'with-script-and-style.html'
-          )
+          ),
         }),
-        new CspHtmlWebpackPlugin()
+        new CspHtmlWebpackPlugin(),
       ]);
 
-      webpackCompile(config, csps => {
+      webpackCompile(config, (csps) => {
         const expectedNoNonce =
           "base-uri 'self';" +
           " object-src 'none';" +
@@ -641,7 +641,7 @@ describe('CspHtmlWebpackPlugin', () => {
   });
 
   describe('Plugin enabled check', () => {
-    it("doesn't modify the html if enabled is the bool false", done => {
+    it("doesn't modify the html if enabled is the bool false", (done) => {
       const config = createWebpackConfig([
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
@@ -650,14 +650,14 @@ describe('CspHtmlWebpackPlugin', () => {
             'test-utils',
             'fixtures',
             'with-no-meta-tag.html'
-          )
+          ),
         }),
         new CspHtmlWebpackPlugin(
           {},
           {
-            enabled: false
+            enabled: false,
           }
-        )
+        ),
       ]);
 
       webpackCompile(config, (csps, selectors) => {
@@ -667,7 +667,7 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
 
-    it("doesn't modify the html if the `cspPlugin.enabled` option in HtmlWebpack Plugin is false", done => {
+    it("doesn't modify the html if the `cspPlugin.enabled` option in HtmlWebpack Plugin is false", (done) => {
       const config = createWebpackConfig([
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
@@ -678,10 +678,10 @@ describe('CspHtmlWebpackPlugin', () => {
             'with-no-meta-tag.html'
           ),
           cspPlugin: {
-            enabled: false
-          }
+            enabled: false,
+          },
         }),
-        new CspHtmlWebpackPlugin()
+        new CspHtmlWebpackPlugin(),
       ]);
 
       webpackCompile(config, (csps, selectors) => {
@@ -691,7 +691,7 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
 
-    it("doesn't modify the html if enabled is a function which return false", done => {
+    it("doesn't modify the html if enabled is a function which return false", (done) => {
       const config = createWebpackConfig([
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
@@ -700,14 +700,14 @@ describe('CspHtmlWebpackPlugin', () => {
             'test-utils',
             'fixtures',
             'with-no-meta-tag.html'
-          )
+          ),
         }),
         new CspHtmlWebpackPlugin(
           {},
           {
-            enabled: () => false
+            enabled: () => false,
           }
-        )
+        ),
       ]);
 
       webpackCompile(config, (csps, selectors) => {
@@ -717,7 +717,7 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
 
-    it("doesn't modify html from the HtmlWebpackPlugin instance which has been disabled", done => {
+    it("doesn't modify html from the HtmlWebpackPlugin instance which has been disabled", (done) => {
       const config = createWebpackConfig([
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index-enabled.html'),
@@ -726,7 +726,7 @@ describe('CspHtmlWebpackPlugin', () => {
             'test-utils',
             'fixtures',
             'with-no-meta-tag.html'
-          )
+          ),
         }),
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index-disabled.html'),
@@ -737,10 +737,10 @@ describe('CspHtmlWebpackPlugin', () => {
             'with-no-meta-tag.html'
           ),
           cspPlugin: {
-            enabled: false
-          }
+            enabled: false,
+          },
         }),
-        new CspHtmlWebpackPlugin()
+        new CspHtmlWebpackPlugin(),
       ]);
 
       webpackCompile(config, (csps, selectors) => {
@@ -754,7 +754,7 @@ describe('CspHtmlWebpackPlugin', () => {
   });
 
   describe('Meta tag', () => {
-    it('still adds the CSP policy into the CSP meta tag even if the content attribute is missing', done => {
+    it('still adds the CSP policy into the CSP meta tag even if the content attribute is missing', (done) => {
       const config = createWebpackConfig([
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
@@ -763,12 +763,12 @@ describe('CspHtmlWebpackPlugin', () => {
             'test-utils',
             'fixtures',
             'with-no-content-attr.html'
-          )
+          ),
         }),
-        new CspHtmlWebpackPlugin()
+        new CspHtmlWebpackPlugin(),
       ]);
 
-      webpackCompile(config, csps => {
+      webpackCompile(config, (csps) => {
         const expected =
           "base-uri 'self';" +
           " object-src 'none';" +
@@ -780,7 +780,7 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
 
-    it('adds meta tag with completed policy when no meta tag is specified', done => {
+    it('adds meta tag with completed policy when no meta tag is specified', (done) => {
       const config = createWebpackConfig([
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
@@ -789,12 +789,12 @@ describe('CspHtmlWebpackPlugin', () => {
             'test-utils',
             'fixtures',
             'with-no-meta-tag.html'
-          )
+          ),
         }),
-        new CspHtmlWebpackPlugin()
+        new CspHtmlWebpackPlugin(),
       ]);
 
-      webpackCompile(config, csps => {
+      webpackCompile(config, (csps) => {
         const expected =
           "base-uri 'self';" +
           " object-src 'none';" +
@@ -806,15 +806,15 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
 
-    it('adds meta tag with completed policy when no template is specified', done => {
+    it('adds meta tag with completed policy when no template is specified', (done) => {
       const config = createWebpackConfig([
         new HtmlWebpackPlugin({
-          filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html')
+          filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
         }),
-        new CspHtmlWebpackPlugin()
+        new CspHtmlWebpackPlugin(),
       ]);
 
-      webpackCompile(config, csps => {
+      webpackCompile(config, (csps) => {
         const expected =
           "base-uri 'self';" +
           " object-src 'none';" +
@@ -826,7 +826,7 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
 
-    it("adds the meta tag as the top most meta tag to ensure that the CSP is defined before we try loading any other scripts, if it doesn't exist", done => {
+    it("adds the meta tag as the top most meta tag to ensure that the CSP is defined before we try loading any other scripts, if it doesn't exist", (done) => {
       const config = createWebpackConfig([
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
@@ -835,9 +835,9 @@ describe('CspHtmlWebpackPlugin', () => {
             'test-utils',
             'fixtures',
             'with-script-and-style.html'
-          )
+          ),
         }),
-        new CspHtmlWebpackPlugin()
+        new CspHtmlWebpackPlugin(),
       ]);
 
       webpackCompile(config, (csps, selectors) => {
@@ -854,7 +854,7 @@ describe('CspHtmlWebpackPlugin', () => {
   });
 
   describe('Custom process function', () => {
-    it('Allows the process function to be overwritten', done => {
+    it('Allows the process function to be overwritten', (done) => {
       const processFn = jest.fn();
       const builtPolicy = `base-uri 'self'; object-src 'none'; script-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-ixjZMYNfWQWawUHioWOx2jBsTmfxucX7IlwsMt2jWvc=' 'nonce-mockedbase64string-1' 'nonce-mockedbase64string-2'; style-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-MqG77yUiqBo4MMVZAl09WSafnQY4Uu3cSdZPKxaf9sQ=' 'nonce-mockedbase64string-3'`;
 
@@ -866,17 +866,17 @@ describe('CspHtmlWebpackPlugin', () => {
             'test-utils',
             'fixtures',
             'with-script-and-style.html'
-          )
+          ),
         }),
         new CspHtmlWebpackPlugin(
           {},
           {
-            processFn
+            processFn,
           }
-        )
+        ),
       ]);
 
-      webpackCompile(config, csps => {
+      webpackCompile(config, (csps) => {
         // we've overwritten the default processFn, which writes the policy into the html file
         // so it won't exist in this object anymore.
         expect(csps['index.html']).toBeUndefined();
@@ -892,7 +892,7 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
 
-    it('only overwrites the processFn for the HtmlWebpackInstance where it has been defined', done => {
+    it('only overwrites the processFn for the HtmlWebpackInstance where it has been defined', (done) => {
       const processFn = jest.fn();
       const index1BuiltPolicy = `base-uri 'self'; object-src 'none'; script-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-ixjZMYNfWQWawUHioWOx2jBsTmfxucX7IlwsMt2jWvc=' 'nonce-mockedbase64string-1' 'nonce-mockedbase64string-2'; style-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-MqG77yUiqBo4MMVZAl09WSafnQY4Uu3cSdZPKxaf9sQ=' 'nonce-mockedbase64string-3'`;
       const index2BuiltPolicy = `base-uri 'self'; object-src 'none'; script-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-ixjZMYNfWQWawUHioWOx2jBsTmfxucX7IlwsMt2jWvc=' 'nonce-mockedbase64string-4' 'nonce-mockedbase64string-5'; style-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-MqG77yUiqBo4MMVZAl09WSafnQY4Uu3cSdZPKxaf9sQ=' 'nonce-mockedbase64string-6'`;
@@ -907,8 +907,8 @@ describe('CspHtmlWebpackPlugin', () => {
             'with-script-and-style.html'
           ),
           cspPlugin: {
-            processFn
-          }
+            processFn,
+          },
         }),
         new HtmlWebpackPlugin({
           filename: path.join(WEBPACK_OUTPUT_DIR, 'index-2.html'),
@@ -917,12 +917,12 @@ describe('CspHtmlWebpackPlugin', () => {
             'test-utils',
             'fixtures',
             'with-script-and-style.html'
-          )
+          ),
         }),
-        new CspHtmlWebpackPlugin()
+        new CspHtmlWebpackPlugin(),
       ]);
 
-      webpackCompile(config, csps => {
+      webpackCompile(config, (csps) => {
         // it won't exist in the html file since we overwrote processFn
         expect(csps['index-1.html']).toBeUndefined();
         // processFn wasn't overwritten here, so this should be added to the html file as normal
