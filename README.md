@@ -41,6 +41,11 @@ This `CspHtmlWebpackPlugin` accepts 2 params with the following structure:
   - `{string}` hashingMethod - accepts 'sha256', 'sha384', 'sha512' - your node version must also accept this hashing method.
   - `{object}` hashEnabled - a `<string, boolean>` entry for which policy rules are allowed to include hashes
   - `{object}` nonceEnabled - a `<string, boolean>` entry for which policy rules are allowed to include nonces
+  - `{Function}` processFn - allows the developer to overwrite the default method of what happens to the CSP after it has been created
+    - Parameters are:
+      - `builtPolicy`: a `string` containing the completed policy;
+      - `htmlPluginData`: the `HtmlWebpackPlugin` `object`;
+      - `$`: the `cheerio` object of the html file currently being processed
 
 The plugin also adds a new config option onto each `HtmlWebpackPlugin` instance:
 
@@ -49,6 +54,13 @@ The plugin also adds a new config option onto each `HtmlWebpackPlugin` instance:
   - `{object}` policy - A custom policy which should be applied only to this instance of the HtmlWebpackPlugin
   - `{object}` hashEnabled - a `<string, boolean>` entry for which policy rules are allowed to include hashes
   - `{object}` nonceEnabled - a `<string, boolean>` entry for which policy rules are allowed to include nonces
+  - `{Function}` processFn - allows the developer to overwrite the default method of what happens to the CSP after it has been created
+    - Parameters are:
+      - `builtPolicy`: a `string` containing the completed policy;
+      - `htmlPluginData`: the `HtmlWebpackPlugin` `object`;
+      - `$`: the `cheerio` object of the html file currently being processed
+
+#### Order of Precedence:
 
 Note that policies and `hashEnabled` / `nonceEnabled` are merged in the following order:
 
@@ -59,6 +71,9 @@ Note that policies and `hashEnabled` / `nonceEnabled` are merged in the followin
 ```
 
 If 2 policies have the same key/policy rule, the former policy will override the latter policy. Entries in a specific rule will not be merged; they will be replaced.
+
+This is useful if you need different policy rules / processing functions for different `HtmlWebpackPlugin` instances
+in the same webpack config.
 
 #### Default Policy:
 
@@ -84,11 +99,15 @@ If 2 policies have the same key/policy rule, the former policy will override the
   nonceEnabled: {
     'script-src': true,
     'style-src': true
-  }
+  },
+  processFn: defaultProcessFn
 }
 ```
 
 #### Full Configuration with all options:
+
+Note that you don't have to include the same section in both `HtmlWebpackPlugin` and `CspHtmlWebpackPlugin`.
+See the [Order of Precedence](#order-of-precedence) section above.
 
 ```
 new HtmlWebpackPlugin({
@@ -107,7 +126,8 @@ new HtmlWebpackPlugin({
     nonceEnabled: {
       'script-src': true,
       'style-src': true
-    }
+    },
+    processFn: defaultProcessFn
   }
 });
 
@@ -126,7 +146,8 @@ new CspHtmlWebpackPlugin({
   nonceEnabled: {
     'script-src': true,
     'style-src': true
-  }
+  },
+  processFn: defaultProcessFn
 })
 ```
 
