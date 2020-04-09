@@ -47,7 +47,7 @@ const defaultPolicy = {
   'base-uri': "'self'",
   'object-src': "'none'",
   'script-src': ["'unsafe-inline'", "'self'", "'unsafe-eval'"],
-  'style-src': ["'unsafe-inline'", "'self'", "'unsafe-eval'"]
+  'style-src': ["'unsafe-inline'", "'self'", "'unsafe-eval'"],
 };
 
 const defaultAdditionalOpts = {
@@ -55,13 +55,13 @@ const defaultAdditionalOpts = {
   hashingMethod: 'sha256',
   hashEnabled: {
     'script-src': true,
-    'style-src': true
+    'style-src': true,
   },
   nonceEnabled: {
     'script-src': true,
-    'style-src': true
+    'style-src': true,
   },
-  processFn: defaultProcessFn
+  processFn: defaultProcessFn,
 };
 
 class CspHtmlWebpackPlugin {
@@ -99,7 +99,7 @@ class CspHtmlWebpackPlugin {
     // CspHtmlWebpackPlugin and HtmlWebpackPlugin policies merged
     const userPolicy = Object.freeze({
       ...this.cspPluginPolicy,
-      ...get(htmlPluginData, 'plugin.options.cspPlugin.policy', {})
+      ...get(htmlPluginData, 'plugin.options.cspPlugin.policy', {}),
     });
 
     // defaultPolicy and userPolicy merged
@@ -111,12 +111,12 @@ class CspHtmlWebpackPlugin {
     // 2. Lets set which hashes and nonces are enabled for this HtmlWebpackPlugin instance
     this.hashEnabled = Object.freeze({
       ...this.opts.hashEnabled,
-      ...get(htmlPluginData, 'plugin.options.cspPlugin.hashEnabled', {})
+      ...get(htmlPluginData, 'plugin.options.cspPlugin.hashEnabled', {}),
     });
 
     this.nonceEnabled = Object.freeze({
       ...this.opts.nonceEnabled,
-      ...get(htmlPluginData, 'plugin.options.cspPlugin.nonceEnabled', {})
+      ...get(htmlPluginData, 'plugin.options.cspPlugin.nonceEnabled', {}),
     });
 
     // 3. Get the processFn for this HtmlWebpackPlugin instance.
@@ -141,13 +141,13 @@ class CspHtmlWebpackPlugin {
       'unsafe-eval',
       'none',
       'strict-dynamic',
-      'report-sample'
+      'report-sample',
     ];
     const sourcesRegexes = staticSources.map(
-      source => new RegExp(`\\s${source}\\s`)
+      (source) => new RegExp(`\\s${source}\\s`)
     );
 
-    Object.keys(this.policy).forEach(key => {
+    Object.keys(this.policy).forEach((key) => {
       const val = Array.isArray(this.policy[key])
         ? compact(uniq(this.policy[key])).join(' ')
         : this.policy[key];
@@ -240,7 +240,7 @@ class CspHtmlWebpackPlugin {
         // return in the format csp needs
         return `'nonce-${nonce}'`;
       })
-      .filter(entry => entry !== null)
+      .filter((entry) => entry !== null)
       .get();
   }
 
@@ -284,7 +284,7 @@ class CspHtmlWebpackPlugin {
   // eslint-disable-next-line class-methods-use-this
   buildPolicy(policyObj) {
     return Object.keys(policyObj)
-      .map(key => {
+      .map((key) => {
         const val = Array.isArray(policyObj[key])
           ? compact(uniq(policyObj[key])).join(' ')
           : policyObj[key];
@@ -310,7 +310,7 @@ class CspHtmlWebpackPlugin {
    */
   processCsp(htmlPluginData, compileCb) {
     const $ = cheerio.load(htmlPluginData.html, {
-      decodeEntities: false
+      decodeEntities: false,
     });
 
     // if not enabled, remove the empty tag
@@ -335,7 +335,7 @@ class CspHtmlWebpackPlugin {
       'style-src': flatten([this.policy['style-src']]).concat(
         styleShas,
         styleNonce
-      )
+      ),
     });
 
     this.processFn(builtPolicy, htmlPluginData, $);
@@ -349,7 +349,7 @@ class CspHtmlWebpackPlugin {
    */
   apply(compiler) {
     if (compiler.hooks) {
-      compiler.hooks.compilation.tap('CspHtmlWebpackPlugin', compilation => {
+      compiler.hooks.compilation.tap('CspHtmlWebpackPlugin', (compilation) => {
         if (HtmlWebpackPlugin && HtmlWebpackPlugin.getHooks) {
           // HTMLWebpackPlugin@4
           HtmlWebpackPlugin.getHooks(
@@ -378,7 +378,7 @@ class CspHtmlWebpackPlugin {
         }
       });
     } else {
-      compiler.plugin('compilation', compilation => {
+      compiler.plugin('compilation', (compilation) => {
         compilation.plugin(
           'html-webpack-plugin-before-html-generation',
           this.mergeOptions.bind(this, compilation)
