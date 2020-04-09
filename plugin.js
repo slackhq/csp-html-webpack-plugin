@@ -13,6 +13,7 @@ try {
   // eslint-disable-next-line global-require
   HtmlWebpackPlugin = require('html-webpack-plugin');
 } catch (e) {
+  /* istanbul ignore next */
   if (!(e instanceof Error) || e.code !== 'MODULE_NOT_FOUND') {
     throw e;
   }
@@ -123,7 +124,7 @@ class CspHtmlWebpackPlugin {
     this.processFn = get(
       htmlPluginData,
       'plugin.options.cspPlugin.processFn',
-      this.opts.processFn || defaultProcessFn
+      this.opts.processFn
     );
 
     return compileCb(null, htmlPluginData);
@@ -352,12 +353,14 @@ class CspHtmlWebpackPlugin {
       compiler.hooks.compilation.tap('CspHtmlWebpackPlugin', (compilation) => {
         if (HtmlWebpackPlugin && HtmlWebpackPlugin.getHooks) {
           // HTMLWebpackPlugin@4
+          /* istanbul ignore next */
           HtmlWebpackPlugin.getHooks(
             compilation
           ).beforeAssetTagGeneration.tapAsync(
             'CspHtmlWebpackPlugin',
             this.mergeOptions.bind(this, compilation)
           );
+          /* istanbul ignore next */
           HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tapAsync(
             'CspHtmlWebpackPlugin',
             this.processCsp.bind(this)
@@ -378,6 +381,7 @@ class CspHtmlWebpackPlugin {
         }
       });
     } else {
+      /* istanbul ignore next */
       compiler.plugin('compilation', (compilation) => {
         compilation.plugin(
           'html-webpack-plugin-before-html-generation',
