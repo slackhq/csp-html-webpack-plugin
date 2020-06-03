@@ -939,4 +939,64 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
   });
+
+  describe('In XHTML Mode', () => {
+    it("honors html-webpack-plugin's xhtmlMode", (done) => {
+      const targetFile = path.join(WEBPACK_OUTPUT_DIR, 'index.html');
+      const config = createWebpackConfig([
+        new HtmlWebpackPlugin({
+          filename: targetFile,
+          template: path.join(
+            __dirname,
+            'test-utils',
+            'fixtures',
+            'with-nothing-xhtml.html'
+          ),
+          xhtml: true,
+        }),
+        new CspHtmlWebpackPlugin(),
+      ]);
+
+      webpackCompile(config, (csps, selectors, fs) => {
+        const content = fs.readFileSync(targetFile, 'utf8');
+        const matches = content.match(/(<meta[^>]*>)/g);
+        expect(matches).not.toBeNull();
+        matches.forEach((match) => expect(match).toMatch(/\/>$/));
+        done();
+      });
+    });
+  });
+
+  it.each([
+    ['with-no-content-attr.html'],
+    ['with-no-meta-tag.html'],
+    ['with-nothing.html'],
+    ['with-nothing-xhtml.html'],
+    ['with-script-and-style.html'],
+  ])(
+    'generates self-closing CSP regardless of the input format (%s)',
+    (file, done) => {
+      const targetFile = path.join(WEBPACK_OUTPUT_DIR, 'index.html');
+      const config = createWebpackConfig([
+        new HtmlWebpackPlugin({
+          filename: targetFile,
+          template: path.join(__dirname, 'test-utils', 'fixtures', file),
+          xhtml: true,
+        }),
+        new CspHtmlWebpackPlugin(),
+      ]);
+
+      webpackCompile(config, (csps, selectors, fs) => {
+        const content = fs.readFileSync(targetFile, 'utf8');
+        const matches = content.match(/(<meta[^>]*>)/g);
+        expect(matches).not.toBeNull();
+        const cspTags = matches.filter(
+          (match) => match.indexOf('Content-Security-Policy') !== -1
+        );
+        expect(cspTags).toHaveLength(1);
+        cspTags.forEach((match) => expect(match).toMatch(/\/>$/));
+        done();
+      });
+    }
+  );
 });
