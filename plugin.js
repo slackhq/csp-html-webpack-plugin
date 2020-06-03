@@ -28,9 +28,10 @@ try {
  */
 const defaultProcessFn = (builtPolicy, htmlPluginData, $) => {
   let metaTag = $('meta[http-equiv="Content-Security-Policy"]');
+  const haveCSP = metaTag.length > 0;
 
   // Add element if it doesn't exist.
-  if (!metaTag.length) {
+  if (!haveCSP) {
     metaTag = cheerio.load('<meta http-equiv="Content-Security-Policy">')(
       'meta'
     );
@@ -40,8 +41,24 @@ const defaultProcessFn = (builtPolicy, htmlPluginData, $) => {
   // build the policy into the context attr of the csp meta tag
   metaTag.attr('content', builtPolicy);
 
-  // eslint-disable-next-line no-param-reassign
-  htmlPluginData.html = $.html();
+  const xmlMode = get(htmlPluginData, 'plugin.options.xhtml', false);
+  const rawTag = metaTag.get(0);
+  if (
+    xmlMode &&
+    (!haveCSP ||
+      (rawTag.startIndex !== undefined && rawTag.endIndex !== undefined))
+  ) {
+    const tag = $.html(metaTag, { xml: true });
+    const html = !haveCSP
+      ? htmlPluginData.html
+      : htmlPluginData.html.slice(0, rawTag.startIndex) +
+        htmlPluginData.html.slice(rawTag.endIndex + 1);
+    // eslint-disable-next-line no-param-reassign
+    htmlPluginData.html = html.replace(/(<head\b[^>]*>)/i, `$1${tag}`);
+  } else {
+    // eslint-disable-next-line no-param-reassign
+    htmlPluginData.html = $.html();
+  }
 };
 
 const defaultPolicy = {
@@ -312,7 +329,9 @@ class CspHtmlWebpackPlugin {
   processCsp(htmlPluginData, compileCb) {
     const $ = cheerio.load(htmlPluginData.html, {
       decodeEntities: false,
-      xmlMode: get(htmlPluginData, 'plugin.options.xhtml', false),
+      withStartIndices: true,
+      withEndIndices: true,
+      _useHtmlParser2: get(htmlPluginData, 'plugin.options.xhtml', false),
     });
 
     // if not enabled, remove the empty tag
