@@ -954,7 +954,10 @@ describe('CspHtmlWebpackPlugin', () => {
           ),
           xhtml: true,
         }),
-        new CspHtmlWebpackPlugin(),
+        new CspHtmlWebpackPlugin(
+          {},
+          { nonceEnabled: { 'script-src': false, 'style-src': false } }
+        ),
       ]);
 
       webpackCompile(config, (csps, selectors, fs) => {
@@ -962,6 +965,11 @@ describe('CspHtmlWebpackPlugin', () => {
         const matches = content.match(/(<meta[^>]*>)/g);
         expect(matches).not.toBeNull();
         matches.forEach((match) => expect(match).toMatch(/\/>$/));
+
+        const $ = selectors['index.html'];
+        expect($('script[nonce]')).toHaveLength(0);
+        expect($('style[nonce]')).toHaveLength(0);
+
         done();
       });
     });
@@ -983,7 +991,10 @@ describe('CspHtmlWebpackPlugin', () => {
           template: path.join(__dirname, 'test-utils', 'fixtures', file),
           xhtml: true,
         }),
-        new CspHtmlWebpackPlugin(),
+        new CspHtmlWebpackPlugin(
+          {},
+          { nonceEnabled: { 'script-src': false, 'style-src': false } }
+        ),
       ]);
 
       webpackCompile(config, (csps, selectors, fs) => {
@@ -995,6 +1006,10 @@ describe('CspHtmlWebpackPlugin', () => {
         );
         expect(cspTags).toHaveLength(1);
         cspTags.forEach((match) => expect(match).toMatch(/\/>$/));
+
+        const $ = selectors['index.html'];
+        expect($('script[nonce]')).toHaveLength(0);
+        expect($('style[nonce]')).toHaveLength(0);
         done();
       });
     }
@@ -1014,12 +1029,7 @@ describe('CspHtmlWebpackPlugin', () => {
       }),
       new CspHtmlWebpackPlugin(
         {},
-        {
-          nonceEnabled: {
-            'script-src': false,
-            'style-src': false,
-          },
-        }
+        { nonceEnabled: { 'script-src': false, 'style-src': false } }
       ),
     ]);
 
@@ -1036,12 +1046,7 @@ describe('CspHtmlWebpackPlugin', () => {
       }),
       new CspHtmlWebpackPlugin(
         {},
-        {
-          nonceEnabled: {
-            'script-src': false,
-            'style-src': false,
-          },
-        }
+        { nonceEnabled: { 'script-src': false, 'style-src': false } }
       ),
     ]);
 

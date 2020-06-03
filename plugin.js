@@ -46,7 +46,8 @@ const defaultProcessFn = (builtPolicy, htmlPluginData, $) => {
   if (
     xmlMode &&
     (!haveCSP ||
-      (rawTag.startIndex !== undefined && rawTag.endIndex !== undefined))
+      (rawTag.startIndex !== undefined && rawTag.endIndex !== undefined)) &&
+    builtPolicy.indexOf("'nonce-") === -1
   ) {
     const tag = $.html(metaTag, { xml: true });
     const html = !haveCSP
@@ -331,7 +332,10 @@ class CspHtmlWebpackPlugin {
       decodeEntities: false,
       withStartIndices: true,
       withEndIndices: true,
-      _useHtmlParser2: get(htmlPluginData, 'plugin.options.xhtml', false),
+      _useHtmlParser2:
+        get(htmlPluginData, 'plugin.options.xhtml', false) &&
+        !this.nonceEnabled['script-src'] &&
+        !this.nonceEnabled['style-src'],
     });
 
     // if not enabled, remove the empty tag
