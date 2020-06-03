@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en-US">
+<head>
+    <meta name="author" content="Slack">
+    <title>Slack CSP HTML Webpack Plugin Tests</title>
+    <link rel="stylesheet" href="https://example.com/example.css">
+    <style type="text/css">
+        body {
+            content: "<something></something>";
+        }
+    </style>
+
+    <script type="text/javascript" src="https://example.com/example.js"></script>
+    <script>
+        for (var i=0; i<100; ++i) {
+            console.log('<A>', i, '</A>');
+        }
+    </script>
+</head>
+<body>
+Body
+</body>
+</html>

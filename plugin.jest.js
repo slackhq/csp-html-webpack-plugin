@@ -999,4 +999,57 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     }
   );
+
+  it('properly handles special characters in inline scripts/styles', (done) => {
+    const configHtml = createWebpackConfig([
+      new HtmlWebpackPlugin({
+        filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
+        template: path.join(
+          __dirname,
+          'test-utils',
+          'fixtures',
+          'with-script-and-style-and-special-chars.html'
+        ),
+        xhtml: false,
+      }),
+      new CspHtmlWebpackPlugin(
+        {},
+        {
+          nonceEnabled: {
+            'script-src': false,
+            'style-src': false,
+          },
+        }
+      ),
+    ]);
+
+    const configXhtml = createWebpackConfig([
+      new HtmlWebpackPlugin({
+        filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
+        template: path.join(
+          __dirname,
+          'test-utils',
+          'fixtures',
+          'with-script-and-style-and-special-chars.html'
+        ),
+        xhtml: true,
+      }),
+      new CspHtmlWebpackPlugin(
+        {},
+        {
+          nonceEnabled: {
+            'script-src': false,
+            'style-src': false,
+          },
+        }
+      ),
+    ]);
+
+    webpackCompile(configHtml, (cspsHtml) => {
+      webpackCompile(configXhtml, (cspsXhtml) => {
+        expect(cspsHtml).toEqual(cspsXhtml);
+        done();
+      });
+    });
+  });
 });
