@@ -312,6 +312,7 @@ class CspHtmlWebpackPlugin {
   processCsp(htmlPluginData, compileCb) {
     const $ = cheerio.load(htmlPluginData.html, {
       decodeEntities: false,
+      xmlMode: get(htmlPluginData, 'plugin.options.xhtml', false),
     });
 
     // if not enabled, remove the empty tag
