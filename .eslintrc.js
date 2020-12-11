@@ -3,13 +3,13 @@ module.exports = {
   plugins: ['prettier'],
   env: {
     es6: true,
-    node: true
+    node: true,
   },
   rules: {
-    'prettier/prettier': ['error', { singleQuote: true }]
+    'prettier/prettier': ['error', { singleQuote: true }],
   },
   globals: {
-    document: true
+    document: true,
   },
   overrides: [
     {
@@ -22,8 +22,8 @@ module.exports = {
         beforeEach: true,
         describe: true,
         expect: true,
-        it: true
-      }
-    }
-  ]
+        it: true,
+      },
+    },
+  ],
 };
