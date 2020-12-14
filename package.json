@@ -34,7 +34,7 @@
     "memory-fs": "^0.5.0"
   },
   "peerDependencies": {
-    "webpack": "^2 || ^3 || ^4 || ^5",
+    "webpack": "^4 || ^5",
     "html-webpack-plugin": "^4 || ^5"
   },
   "devDependencies": {
