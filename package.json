@@ -35,7 +35,7 @@
   },
   "peerDependencies": {
     "webpack": "^2 || ^3 || ^4 || ^5",
-    "html-webpack-plugin": "^2 || ^3 || ^4"
+    "html-webpack-plugin": "^4"
   },
   "devDependencies": {
     "babel-jest": "^26.6.3",
