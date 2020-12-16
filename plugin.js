@@ -349,50 +349,16 @@ class CspHtmlWebpackPlugin {
    * @param compiler
    */
   apply(compiler) {
-    if (compiler.hooks) {
-      compiler.hooks.compilation.tap('CspHtmlWebpackPlugin', (compilation) => {
-        if (HtmlWebpackPlugin && HtmlWebpackPlugin.getHooks) {
-          // HTMLWebpackPlugin@4
-          /* istanbul ignore next */
-          HtmlWebpackPlugin.getHooks(
-            compilation
-          ).beforeAssetTagGeneration.tapAsync(
-            'CspHtmlWebpackPlugin',
-            this.mergeOptions.bind(this, compilation)
-          );
-          /* istanbul ignore next */
-          HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tapAsync(
-            'CspHtmlWebpackPlugin',
-            this.processCsp.bind(this)
-          );
-        } else if (
-          compilation.hooks.htmlWebpackPluginBeforeHtmlGeneration &&
-          compilation.hooks.htmlWebpackPluginAfterHtmlProcessing
-        ) {
-          // HTMLWebpackPlugin@3
-          compilation.hooks.htmlWebpackPluginBeforeHtmlGeneration.tapAsync(
-            'CspHtmlWebpackPlugin',
-            this.mergeOptions.bind(this, compilation)
-          );
-          compilation.hooks.htmlWebpackPluginAfterHtmlProcessing.tapAsync(
-            'CspHtmlWebpackPlugin',
-            this.processCsp.bind(this)
-          );
-        }
-      });
-    } else {
-      /* istanbul ignore next */
-      compiler.plugin('compilation', (compilation) => {
-        compilation.plugin(
-          'html-webpack-plugin-before-html-generation',
-          this.mergeOptions.bind(this, compilation)
-        );
-        compilation.plugin(
-          'html-webpack-plugin-after-html-processing',
-          this.processCsp.bind(this)
-        );
-      });
-    }
+    compiler.hooks.compilation.tap('CspHtmlWebpackPlugin', (compilation) => {
+      HtmlWebpackPlugin.getHooks(compilation).beforeAssetTagGeneration.tapAsync(
+        'CspHtmlWebpackPlugin',
+        this.mergeOptions.bind(this, compilation)
+      );
+      HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tapAsync(
+        'CspHtmlWebpackPlugin',
+        this.processCsp.bind(this)
+      );
+    });
   }
 }
 
