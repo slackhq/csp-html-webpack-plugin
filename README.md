@@ -90,6 +90,7 @@ This `CspHtmlWebpackPlugin` accepts 2 params with the following structure:
       - `builtPolicy`: a `string` containing the completed policy;
       - `htmlPluginData`: the `HtmlWebpackPlugin` `object`;
       - `$`: the `cheerio` object of the html file currently being processed
+      - `compilation`: Internal webpack object to manipulate the build
 
 ### `HtmlWebpackPlugin`
 
@@ -105,6 +106,7 @@ The plugin also adds a new config option onto each `HtmlWebpackPlugin` instance:
       - `builtPolicy`: a `string` containing the completed policy;
       - `htmlPluginData`: the `HtmlWebpackPlugin` `object`;
       - `$`: the `cheerio` object of the html file currently being processed
+      - `compilation`: Internal webpack object to manipulate the build
 
 ### Order of Precedence:
 

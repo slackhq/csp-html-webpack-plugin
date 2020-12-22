@@ -885,6 +885,7 @@ describe('CspHtmlWebpackPlugin', () => {
         expect(processFn).toHaveBeenCalledWith(
           builtPolicy,
           expect.anything(),
+          expect.anything(),
           expect.anything()
         );
 
@@ -931,6 +932,7 @@ describe('CspHtmlWebpackPlugin', () => {
         // index-1.html should have used our custom function defined
         expect(processFn).toHaveBeenCalledWith(
           index1BuiltPolicy,
+          expect.anything(),
           expect.anything(),
           expect.anything()
         );
