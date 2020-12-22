@@ -963,5 +963,32 @@ describe('CspHtmlWebpackPlugin', () => {
         done();
       });
     });
+
+    it('generates a hash for style tags wrapped in noscript tags', (done) => {
+      const config = createWebpackConfig([
+        new HtmlWebpackPlugin({
+          filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
+          template: path.join(
+            __dirname,
+            'test-utils',
+            'fixtures',
+            'with-noscript-tags.html'
+          ),
+        }),
+        new CspHtmlWebpackPlugin(),
+      ]);
+
+      webpackCompile(config, (csps) => {
+        const expected =
+          "base-uri 'self';" +
+          " object-src 'none';" +
+          " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'nonce-mockedbase64string-1';" +
+          " style-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-JUH8Xh1Os2tA1KU3Lfxn5uZXj2Q/a/i0UVMzpWO4uOU='";
+
+        expect(csps['index.html']).toEqual(expected);
+
+        done();
+      });
+    });
   });
 });
