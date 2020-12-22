@@ -990,5 +990,44 @@ describe('CspHtmlWebpackPlugin', () => {
         done();
       });
     });
+
+    it('honors xhtml mode if set on the html-webpack-plugin instance', (done) => {
+      const config = createWebpackConfig([
+        new HtmlWebpackPlugin({
+          filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
+          template: path.join(
+            __dirname,
+            'test-utils',
+            'fixtures',
+            'with-xhtml.html'
+          ),
+          xhtml: true,
+        }),
+        new CspHtmlWebpackPlugin(),
+      ]);
+
+      webpackCompile(config, (csps, selectors, fileSystem) => {
+        const xhtmlContents = fileSystem
+          .readFileSync(path.join(WEBPACK_OUTPUT_DIR, 'index.html'), 'utf8')
+          .toString();
+
+        // correct doctype
+        expect(xhtmlContents).toContain(
+          '<!DOCTYPE composition PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'
+        );
+
+        // self closing tag
+        expect(xhtmlContents).toContain(
+          '<meta name="author" content="Slack"/>'
+        );
+
+        // csp has been added in
+        expect(xhtmlContents).toContain(
+          `<meta http-equiv="Content-Security-Policy" content="base-uri 'self'; object-src 'none'; script-src 'unsafe-inline' 'self' 'unsafe-eval' 'nonce-mockedbase64string-1'; style-src 'unsafe-inline' 'self' 'unsafe-eval'"/>`
+        );
+
+        done();
+      });
+    });
   });
 });

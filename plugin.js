@@ -41,7 +41,9 @@ const defaultProcessFn = (builtPolicy, htmlPluginData, $) => {
   metaTag.attr('content', builtPolicy);
 
   // eslint-disable-next-line no-param-reassign
-  htmlPluginData.html = $.html();
+  htmlPluginData.html = get(htmlPluginData, 'plugin.options.xhtml', false)
+    ? $.xml()
+    : $.html();
 };
 
 const defaultPolicy = {
@@ -313,6 +315,7 @@ class CspHtmlWebpackPlugin {
     const $ = cheerio.load(htmlPluginData.html, {
       decodeEntities: false,
       _useHtmlParser2: true,
+      xmlMode: get(htmlPluginData, 'plugin.options.xhtml', false),
     });
 
     // if not enabled, remove the empty tag
