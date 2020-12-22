@@ -939,4 +939,29 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
   });
+
+  describe('HTML parsing', () => {
+    it("doesn't encode escaped HTML entities", (done) => {
+      const config = createWebpackConfig([
+        new HtmlWebpackPlugin({
+          filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
+          template: path.join(
+            __dirname,
+            'test-utils',
+            'fixtures',
+            'with-escaped-html.html'
+          ),
+        }),
+        new CspHtmlWebpackPlugin(),
+      ]);
+
+      webpackCompile(config, (_, selectors) => {
+        const $ = selectors['index.html'];
+        expect($('body').html().trim()).toEqual(
+          '&lt;h1&gt;Escaped Content&lt;h1&gt;'
+        );
+        done();
+      });
+    });
+  });
 });
