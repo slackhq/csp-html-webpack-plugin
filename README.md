@@ -17,7 +17,7 @@ All inline JS and CSS will be hashed and inserted into the policy.
 
 Install the plugin with npm:
 
-```
+```bash
 npm i --save-dev csp-html-webpack-plugin
 ```
 
@@ -25,7 +25,7 @@ npm i --save-dev csp-html-webpack-plugin
 
 Include the following in your webpack config:
 
-```
+```js
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CspHtmlWebpackPlugin = require('csp-html-webpack-plugin');
 
@@ -127,7 +127,7 @@ In the case where a config object is defined in multiple places, it will be merg
 
 #### Default Policy:
 
-```
+```js
 {
   'base-uri': "'self'",
   'object-src': "'none'",
@@ -138,7 +138,7 @@ In the case where a config object is defined in multiple places, it will be merg
 
 #### Default Additional Options:
 
-```
+```js
 {
   enabled: true
   hashingMethod: 'sha256',
@@ -156,7 +156,7 @@ In the case where a config object is defined in multiple places, it will be merg
 
 #### Full Default Configuration:
 
-```
+```js
 new HtmlWebpackPlugin({
   cspPlugin: {
     enabled: true,
@@ -197,7 +197,47 @@ new CspHtmlWebpackPlugin({
   processFn: defaultProcessFn  // defined in the plugin itself
 })
 ```
+## Advanced Usage
+### Dumping the CSP directives into a file
 
+Sometimes the `<meta>` tag is not compatible with specific directives, for example `report-uri` or `report-to`.
+For that specific case, it's possible to set your own `processFn` callback to add a conf file that will be used by the reverse-proxy.
+
+Here is an example for nginx in webpack.config.js : 
+```js
+const RawSource = require('webpack-sources').RawSource;
+
+function generateNginxHeaderFile(
+  builtPolicy,
+  _htmlPluginData,
+  _obj,
+  compilation
+) {
+  const header =
+    'add_header Content-Security-Policy "' +
+    builtPolicy +
+    '; report-uri /csp-report/ ";';
+  compilation.emitAsset('nginx-csp-header.conf', new RawSource(header));
+}
+
+module.exports = {
+  {...},
+  plugins: [
+    new CspHtmlWebpackPlugin(
+      {...}, {
+      processFn: generateNginxHeaderFile
+    })
+  ]
+};
+```
+
+In nginx configuration :
+```nginx
+location / {
+  ...
+  include /path/to/webpack/output/nginx-csp-header.conf
+}
+```
 ## Contribution
 
 Contributions are most welcome! Please see the included contributing file for more information.
