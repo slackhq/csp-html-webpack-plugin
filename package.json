@@ -29,9 +29,8 @@
   "author": "Anuj Nair",
   "license": "MIT",
   "dependencies": {
-    "cheerio": "^1.0.0-rc.3",
-    "lodash": "^4.17.20",
-    "memory-fs": "^0.5.0"
+    "cheerio": "^1.0.0-rc.5",
+    "lodash": "^4.17.20"
   },
   "peerDependencies": {
     "webpack": "^4 || ^5",
@@ -40,13 +39,14 @@
   "devDependencies": {
     "babel-jest": "^26.6.3",
     "codecov": "^3.8.1",
-    "eslint": "^7.15.0",
+    "eslint": "^7.16.0",
     "eslint-config-airbnb-base": "^14.2.1",
-    "eslint-config-prettier": "^7.0.0",
+    "eslint-config-prettier": "^7.1.0",
     "eslint-plugin-import": "^2.22.1",
     "eslint-plugin-prettier": "^3.3.0",
     "html-webpack-plugin": "^5.0.0-alpha.15",
     "jest": "^26.6.3",
+    "memory-fs": "^0.5.0",
     "prettier": "^2.2.1",
     "webpack": "^5.10.1"
   }

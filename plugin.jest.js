@@ -939,4 +939,95 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
   });
+
+  describe('HTML parsing', () => {
+    it("doesn't encode escaped HTML entities", (done) => {
+      const config = createWebpackConfig([
+        new HtmlWebpackPlugin({
+          filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
+          template: path.join(
+            __dirname,
+            'test-utils',
+            'fixtures',
+            'with-escaped-html.html'
+          ),
+        }),
+        new CspHtmlWebpackPlugin(),
+      ]);
+
+      webpackCompile(config, (_, selectors) => {
+        const $ = selectors['index.html'];
+        expect($('body').html().trim()).toEqual(
+          '&lt;h1&gt;Escaped Content&lt;h1&gt;'
+        );
+        done();
+      });
+    });
+
+    it('generates a hash for style tags wrapped in noscript tags', (done) => {
+      const config = createWebpackConfig([
+        new HtmlWebpackPlugin({
+          filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
+          template: path.join(
+            __dirname,
+            'test-utils',
+            'fixtures',
+            'with-noscript-tags.html'
+          ),
+        }),
+        new CspHtmlWebpackPlugin(),
+      ]);
+
+      webpackCompile(config, (csps) => {
+        const expected =
+          "base-uri 'self';" +
+          " object-src 'none';" +
+          " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'nonce-mockedbase64string-1';" +
+          " style-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-JUH8Xh1Os2tA1KU3Lfxn5uZXj2Q/a/i0UVMzpWO4uOU='";
+
+        expect(csps['index.html']).toEqual(expected);
+
+        done();
+      });
+    });
+
+    it('honors xhtml mode if set on the html-webpack-plugin instance', (done) => {
+      const config = createWebpackConfig([
+        new HtmlWebpackPlugin({
+          filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
+          template: path.join(
+            __dirname,
+            'test-utils',
+            'fixtures',
+            'with-xhtml.html'
+          ),
+          xhtml: true,
+        }),
+        new CspHtmlWebpackPlugin(),
+      ]);
+
+      webpackCompile(config, (csps, selectors, fileSystem) => {
+        const xhtmlContents = fileSystem
+          .readFileSync(path.join(WEBPACK_OUTPUT_DIR, 'index.html'), 'utf8')
+          .toString();
+
+        // correct doctype
+        expect(xhtmlContents).toContain(
+          '<!DOCTYPE composition PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">'
+        );
+
+        // self closing tag
+        expect(xhtmlContents).toContain(
+          '<meta name="author" content="Slack"/>'
+        );
+
+        // csp has been added in
+        expect(xhtmlContents).toContain(
+          `<meta http-equiv="Content-Security-Policy" content="base-uri 'self'; object-src 'none'; script-src 'unsafe-inline' 'self' 'unsafe-eval' 'nonce-mockedbase64string-1'; style-src 'unsafe-inline' 'self' 'unsafe-eval'"/>`
+        );
+
+        done();
+      });
+    });
+  });
 });

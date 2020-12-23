@@ -7,6 +7,10 @@ module.exports = {
   },
   rules: {
     'prettier/prettier': ['error', { singleQuote: true }],
+    'import/no-extraneous-dependencies': [
+      'error',
+      { devDependencies: ['test-utils/**/*', '**/*.jest.js'] },
+    ],
   },
   globals: {
     document: true,
