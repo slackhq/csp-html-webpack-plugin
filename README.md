@@ -198,12 +198,15 @@ new CspHtmlWebpackPlugin({
 })
 ```
 ## Advanced Usage
-### Dumping the CSP directives into a file
+### Generating a file containing the CSP directives
 
-Sometimes the `<meta>` tag is not compatible with specific directives, for example `report-uri` or `report-to`.
-For that specific case, it's possible to set your own `processFn` callback to add a conf file that will be used by the reverse-proxy.
+Some specific directives require the CSP to be sent to the client via a response header (e.g. `report-uri` and `report-to`)
+You can set your own `processFn` callback to make this happen.
 
-Here is an example for nginx in webpack.config.js : 
+#### nginx
+
+In your webpack config:
+
 ```js
 const RawSource = require('webpack-sources').RawSource;
 
@@ -230,8 +233,7 @@ module.exports = {
   ]
 };
 ```
-
-In nginx configuration :
+In your nginx config:
 ```nginx
 location / {
   ...
