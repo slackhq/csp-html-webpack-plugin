@@ -1,6 +1,7 @@
 const path = require('path');
 const crypto = require('crypto');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
+const { RawSource } = require('webpack-sources');
 const {
   WEBPACK_OUTPUT_DIR,
   createWebpackConfig,
@@ -936,6 +937,50 @@ describe('CspHtmlWebpackPlugin', () => {
           expect.anything(),
           expect.anything()
         );
+
+        done();
+      });
+    });
+
+    it('Allows to generate a file containing the policy', (done) => {
+      function generateCSPFile(
+        builtPolicy,
+        _htmlPluginData,
+        _obj,
+        compilation
+      ) {
+        compilation.emitAsset('csp.conf', new RawSource(builtPolicy));
+      }
+      const index1BuiltPolicy = `base-uri 'self'; object-src 'none'; script-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-ixjZMYNfWQWawUHioWOx2jBsTmfxucX7IlwsMt2jWvc=' 'nonce-mockedbase64string-1' 'nonce-mockedbase64string-2'; style-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-MqG77yUiqBo4MMVZAl09WSafnQY4Uu3cSdZPKxaf9sQ=' 'nonce-mockedbase64string-3'`;
+
+      const config = createWebpackConfig([
+        new HtmlWebpackPlugin({
+          filename: path.join(WEBPACK_OUTPUT_DIR, 'index-1.html'),
+          template: path.join(
+            __dirname,
+            'test-utils',
+            'fixtures',
+            'with-script-and-style.html'
+          ),
+        }),
+        new CspHtmlWebpackPlugin(
+          {},
+          {
+            processFn: generateCSPFile,
+          }
+        ),
+      ]);
+
+      webpackCompile(config, (csps, selectors, fileSystem) => {
+        const cspFileContent = fileSystem
+          .readFileSync(path.join(WEBPACK_OUTPUT_DIR, 'csp.conf'), 'utf8')
+          .toString();
+
+        // it won't exist in the html file since we overwrote processFn
+        expect(csps['index-1.html']).toBeUndefined();
+
+        // A file has been generated
+        expect(cspFileContent).toEqual(index1BuiltPolicy);
 
         done();
       });
