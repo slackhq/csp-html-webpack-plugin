@@ -311,7 +311,7 @@ class CspHtmlWebpackPlugin {
    * @param htmlPluginData
    * @param compileCb
    */
-  processCsp(htmlPluginData, compileCb) {
+  processCsp(compilation, htmlPluginData, compileCb) {
     const $ = cheerio.load(htmlPluginData.html, {
       decodeEntities: false,
       _useHtmlParser2: true,
@@ -343,7 +343,7 @@ class CspHtmlWebpackPlugin {
       ),
     });
 
-    this.processFn(builtPolicy, htmlPluginData, $);
+    this.processFn(builtPolicy, htmlPluginData, $, compilation);
 
     return compileCb(null, htmlPluginData);
   }
@@ -360,7 +360,7 @@ class CspHtmlWebpackPlugin {
       );
       HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tapAsync(
         'CspHtmlWebpackPlugin',
-        this.processCsp.bind(this)
+        this.processCsp.bind(this, compilation)
       );
     });
   }

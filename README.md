@@ -17,7 +17,7 @@ All inline JS and CSS will be hashed and inserted into the policy.
 
 Install the plugin with npm:
 
-```
+```bash
 npm i --save-dev csp-html-webpack-plugin
 ```
 
@@ -25,7 +25,7 @@ npm i --save-dev csp-html-webpack-plugin
 
 Include the following in your webpack config:
 
-```
+```js
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const CspHtmlWebpackPlugin = require('csp-html-webpack-plugin');
 
@@ -90,6 +90,7 @@ This `CspHtmlWebpackPlugin` accepts 2 params with the following structure:
       - `builtPolicy`: a `string` containing the completed policy;
       - `htmlPluginData`: the `HtmlWebpackPlugin` `object`;
       - `$`: the `cheerio` object of the html file currently being processed
+      - `compilation`: Internal webpack object to manipulate the build
 
 ### `HtmlWebpackPlugin`
 
@@ -105,6 +106,7 @@ The plugin also adds a new config option onto each `HtmlWebpackPlugin` instance:
       - `builtPolicy`: a `string` containing the completed policy;
       - `htmlPluginData`: the `HtmlWebpackPlugin` `object`;
       - `$`: the `cheerio` object of the html file currently being processed
+      - `compilation`: Internal webpack object to manipulate the build
 
 ### Order of Precedence:
 
@@ -125,7 +127,7 @@ In the case where a config object is defined in multiple places, it will be merg
 
 #### Default Policy:
 
-```
+```js
 {
   'base-uri': "'self'",
   'object-src': "'none'",
@@ -136,7 +138,7 @@ In the case where a config object is defined in multiple places, it will be merg
 
 #### Default Additional Options:
 
-```
+```js
 {
   enabled: true
   hashingMethod: 'sha256',
@@ -154,7 +156,7 @@ In the case where a config object is defined in multiple places, it will be merg
 
 #### Full Default Configuration:
 
-```
+```js
 new HtmlWebpackPlugin({
   cspPlugin: {
     enabled: true,
@@ -195,7 +197,49 @@ new CspHtmlWebpackPlugin({
   processFn: defaultProcessFn  // defined in the plugin itself
 })
 ```
+## Advanced Usage
+### Generating a file containing the CSP directives
 
+Some specific directives require the CSP to be sent to the client via a response header (e.g. `report-uri` and `report-to`)
+You can set your own `processFn` callback to make this happen.
+
+#### nginx
+
+In your webpack config:
+
+```js
+const RawSource = require('webpack-sources').RawSource;
+
+function generateNginxHeaderFile(
+  builtPolicy,
+  _htmlPluginData,
+  _obj,
+  compilation
+) {
+  const header =
+    'add_header Content-Security-Policy "' +
+    builtPolicy +
+    '; report-uri /csp-report/ ";';
+  compilation.emitAsset('nginx-csp-header.conf', new RawSource(header));
+}
+
+module.exports = {
+  {...},
+  plugins: [
+    new CspHtmlWebpackPlugin(
+      {...}, {
+      processFn: generateNginxHeaderFile
+    })
+  ]
+};
+```
+In your nginx config:
+```nginx
+location / {
+  ...
+  include /path/to/webpack/output/nginx-csp-header.conf
+}
+```
 ## Contribution
 
 Contributions are most welcome! Please see the included contributing file for more information.
