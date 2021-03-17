@@ -74,16 +74,22 @@ function webpackCompile(
  * @param {string} publicPath - publicPath setting for webpack
  * @return {{mode: string, output: {path: string, filename: string}, entry: string, plugins: *}}
  */
-function createWebpackConfig(plugins, publicPath = undefined) {
+function createWebpackConfig(
+  plugins,
+  publicPath = undefined,
+  entry = 'index.js',
+  extra = {}
+) {
   return {
     mode: 'none',
-    entry: path.join(__dirname, '..', 'test-utils', 'fixtures', 'index.js'),
+    entry: path.join(__dirname, '..', 'test-utils', 'fixtures', entry),
     output: {
       path: WEBPACK_OUTPUT_DIR,
       publicPath,
       filename: 'index.bundle.js',
     },
     plugins,
+    ...extra,
   };
 }
 

@@ -2,6 +2,7 @@ const path = require('path');
 const crypto = require('crypto');
 const HtmlWebpackPlugin = require('html-webpack-plugin');
 const { RawSource } = require('webpack-sources');
+const MiniCssExtractPlugin = require('mini-css-extract-plugin');
 const {
   WEBPACK_OUTPUT_DIR,
   createWebpackConfig,
@@ -138,6 +139,47 @@ describe('CspHtmlWebpackPlugin', () => {
           " object-src 'none';" +
           " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-ixjZMYNfWQWawUHioWOx2jBsTmfxucX7IlwsMt2jWvc=' 'sha256-J7wa7HNc5Nb9SvdpRj1UEzZlXOJERU6Mw8r5DSsL1Go=' 'nonce-mockedbase64string-1' 'nonce-mockedbase64string-2';" +
           " style-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-MqG77yUiqBo4MMVZAl09WSafnQY4Uu3cSdZPKxaf9sQ=' 'nonce-mockedbase64string-3'";
+
+        expect(csps['index.html']).toEqual(expected);
+        done();
+      });
+    });
+
+    it('inserts hashes for linked scripts and styles from the same Webpack build', (done) => {
+      const config = createWebpackConfig(
+        [
+          new HtmlWebpackPlugin({
+            filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
+            template: path.join(
+              __dirname,
+              'test-utils',
+              'fixtures',
+              'external-scripts-styles.html'
+            ),
+          }),
+          new MiniCssExtractPlugin(),
+          new CspHtmlWebpackPlugin(),
+        ],
+        undefined,
+        'index-styled.js',
+        {
+          module: {
+            rules: [
+              {
+                test: /\.css$/,
+                use: [MiniCssExtractPlugin.loader, 'css-loader'],
+              },
+            ],
+          },
+        }
+      );
+
+      webpackCompile(config, (csps) => {
+        const expected =
+          "base-uri 'self';" +
+          " object-src 'none';" +
+          " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-IDmpTcnLo5Niek0rbHm9EEQtYiqYHApvDU+Rta9RdVU=' 'nonce-mockedbase64string-1' 'nonce-mockedbase64string-2';" +
+          " style-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-bFK7QzTObijstzDDaq2yN82QIYcoYx/EDD87NWCGiPw=' 'nonce-mockedbase64string-3' 'nonce-mockedbase64string-4'";
 
         expect(csps['index.html']).toEqual(expected);
         done();
