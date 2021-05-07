@@ -324,14 +324,15 @@ class CspHtmlWebpackPlugin {
       return compileCb(null, htmlPluginData);
     }
 
-    // get all nonces for script and style tags
+    // get all nonces for linked script and style tags
     const scriptNonce = this.setNonce($, 'script-src', 'script[src]');
     const styleNonce = this.setNonce($, 'style-src', 'link[rel="stylesheet"]');
 
-    // get all shas for script and style tags
+    // get all shas for inline script and style tags
     const scriptShas = this.getShas($, 'script-src', 'script:not([src])');
     const styleShas = this.getShas($, 'style-src', 'style:not([href])');
 
+    // find scripts and styles that were linked to in this HtmlWebpackPlugin instance's output
     const includedScripts = $('script[src]')
       .map((i, element) => $(element).attr('src'))
       .get();
@@ -339,6 +340,7 @@ class CspHtmlWebpackPlugin {
       .map((i, element) => $(element).attr('href'))
       .get();
 
+    // get all the shas for scripts and styles generated and linked to by this HtmlWebpackPlugin instance
     const linkedScriptShas = this.scriptFilesToHash
       .filter((filename) =>
         includedScripts.includes(path.join(this.publicPath, filename))
