@@ -21,6 +21,19 @@ try {
 }
 
 /**
+ * Remove the public path from a URL, if present
+ * @param publicPath
+ * @param {string} filePath
+ * @returns {string}
+ */
+const getFilename = (publicPath, filePath) => {
+  if (!publicPath || !filePath.startsWith(publicPath)) {
+    return filePath;
+  }
+  return filePath.substr(publicPath.length);
+};
+
+/**
  * The default function for adding the CSP to the head of a document
  * Can be overwritten to allow the developer to process the CSP in their own way
  * @param {string} builtPolicy
@@ -412,19 +425,6 @@ class CspHtmlWebpackPlugin {
   }
 
   /**
-   * Remove the public path from a URL, if present
-   * @param publicPath
-   * @param {string} path
-   * @returns {string}
-   */
-  getFilename(publicPath, path) {
-    if (!publicPath || !path.startsWith(publicPath)) {
-      return path;
-    }
-    return path.substr(publicPath.length);
-  }
-
-  /**
    * Add integrity attributes to asset tags
    * @param compilation
    * @param htmlPluginData
@@ -432,20 +432,38 @@ class CspHtmlWebpackPlugin {
    */
   addIntegrityAttributes(compilation, htmlPluginData, compileCb) {
     if (this.hashEnabled['script-src'] !== false) {
-      htmlPluginData.assetTags.scripts.filter(tag => tag.attributes.src).forEach(tag => {
-        const filename = this.getFilename(compilation.options.output.publicPath, tag.attributes.src);
-        if (filename in compilation.assets) {
-          tag.attributes.integrity = this.hashFile(compilation.assets, filename).slice(1, -1);
-        }
-      });
+      htmlPluginData.assetTags.scripts
+        .filter((tag) => tag.attributes.src)
+        .forEach((tag) => {
+          const filename = getFilename(
+            compilation.options.output.publicPath,
+            tag.attributes.src
+          );
+          if (filename in compilation.assets) {
+            // eslint-disable-next-line no-param-reassign
+            tag.attributes.integrity = this.hashFile(
+              compilation.assets,
+              filename
+            ).slice(1, -1);
+          }
+        });
     }
     if (this.hashEnabled['style-src'] !== false) {
-      htmlPluginData.assetTags.styles.filter(tag => tag.attributes.href).forEach(tag => {
-        const filename = this.getFilename(compilation.options.output.publicPath, tag.attributes.href);
-        if (filename in compilation.assets) {
-          tag.attributes.integrity = this.hashFile(compilation.assets, filename).slice(1, -1);
-        }
-      });
+      htmlPluginData.assetTags.styles
+        .filter((tag) => tag.attributes.href)
+        .forEach((tag) => {
+          const filename = getFilename(
+            compilation.options.output.publicPath,
+            tag.attributes.href
+          );
+          if (filename in compilation.assets) {
+            // eslint-disable-next-line no-param-reassign
+            tag.attributes.integrity = this.hashFile(
+              compilation.assets,
+              filename
+            ).slice(1, -1);
+          }
+        });
     }
     return compileCb(null, htmlPluginData);
   }
@@ -471,7 +489,7 @@ class CspHtmlWebpackPlugin {
       HtmlWebpackPlugin.getHooks(compilation).alterAssetTags.tapAsync(
         'CspHtmlWebpackPlugin',
         this.addIntegrityAttributes.bind(this, compilation)
-      )
+      );
     });
   }
 }

@@ -216,8 +216,8 @@ describe('CspHtmlWebpackPlugin', () => {
         undefined,
         {
           entry: {
-            '1': path.join(__dirname, 'test-utils', 'fixtures', 'index-1.js'),
-            '2': path.join(__dirname, 'test-utils', 'fixtures', 'index-2.js'),
+            1: path.join(__dirname, 'test-utils', 'fixtures', 'index-1.js'),
+            2: path.join(__dirname, 'test-utils', 'fixtures', 'index-2.js'),
           },
           module: {
             rules: [
@@ -579,14 +579,18 @@ describe('CspHtmlWebpackPlugin', () => {
 
         scripts.each((i, script) => {
           if (!script.attribs.src.startsWith('http')) {
-            expect(script.attribs.integrity).toEqual("sha256-IDmpTcnLo5Niek0rbHm9EEQtYiqYHApvDU+Rta9RdVU=");
+            expect(script.attribs.integrity).toEqual(
+              'sha256-IDmpTcnLo5Niek0rbHm9EEQtYiqYHApvDU+Rta9RdVU='
+            );
           } else {
             expect(script.attribs.integrity).toBeUndefined();
           }
-        })
+        });
         styles.each((i, style) => {
           if (!style.attribs.href.startsWith('http')) {
-            expect(style.attribs.integrity).toEqual("sha256-bFK7QzTObijstzDDaq2yN82QIYcoYx/EDD87NWCGiPw=");
+            expect(style.attribs.integrity).toEqual(
+              'sha256-bFK7QzTObijstzDDaq2yN82QIYcoYx/EDD87NWCGiPw='
+            );
           } else {
             expect(style.attribs.integrity).toBeUndefined();
           }
@@ -630,7 +634,7 @@ describe('CspHtmlWebpackPlugin', () => {
 
         scripts.each((i, script) => {
           expect(script.attribs.integrity).toBeUndefined();
-        })
+        });
         styles.each((i, style) => {
           expect(style.attribs.integrity).toBeUndefined();
         });
