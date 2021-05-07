@@ -186,6 +186,72 @@ describe('CspHtmlWebpackPlugin', () => {
       });
     });
 
+    it('only inserts hashes for linked scripts and styles from the same HtmlWebpackPlugin instance', (done) => {
+      const config = createWebpackConfig(
+        [
+          new HtmlWebpackPlugin({
+            filename: path.join(WEBPACK_OUTPUT_DIR, 'index-1.html'),
+            template: path.join(
+              __dirname,
+              'test-utils',
+              'fixtures',
+              'external-scripts-styles.html'
+            ),
+            chunks: ['1'],
+          }),
+          new HtmlWebpackPlugin({
+            filename: path.join(WEBPACK_OUTPUT_DIR, 'index-2.html'),
+            template: path.join(
+              __dirname,
+              'test-utils',
+              'fixtures',
+              'external-scripts-styles.html'
+            ),
+            chunks: ['2'],
+          }),
+          new MiniCssExtractPlugin(),
+          new CspHtmlWebpackPlugin(),
+        ],
+        undefined,
+        undefined,
+        {
+          entry: {
+            '1': path.join(__dirname, 'test-utils', 'fixtures', 'index-1.js'),
+            '2': path.join(__dirname, 'test-utils', 'fixtures', 'index-2.js'),
+          },
+          module: {
+            rules: [
+              {
+                test: /\.css$/,
+                use: [MiniCssExtractPlugin.loader, 'css-loader'],
+              },
+            ],
+          },
+          output: {
+            path: WEBPACK_OUTPUT_DIR,
+            filename: 'index-[name].bundle.js',
+          },
+        }
+      );
+
+      webpackCompile(config, (csps) => {
+        const expected1 =
+          "base-uri 'self';" +
+          " object-src 'none';" +
+          " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-Y3RBVJzjgMLd/3xbsXMQc/ZEfadYzG3ndisG/ogf+jQ=' 'nonce-mockedbase64string-1' 'nonce-mockedbase64string-2';" +
+          " style-src 'unsafe-inline' 'self' 'unsafe-eval' 'nonce-mockedbase64string-3'";
+        const expected2 =
+          "base-uri 'self';" +
+          " object-src 'none';" +
+          " script-src 'unsafe-inline' 'self' 'unsafe-eval' 'sha256-npoLW6kyIiQHrDdOzxWCi7oMbea1fUsMVFlclhuByTY=' 'nonce-mockedbase64string-4' 'nonce-mockedbase64string-5';" +
+          " style-src 'unsafe-inline' 'self' 'unsafe-eval' 'nonce-mockedbase64string-6'";
+
+        expect(csps['index-1.html']).toEqual(expected1);
+        expect(csps['index-2.html']).toEqual(expected2);
+        done();
+      });
+    });
+
     it('inserts a custom policy if one is defined', (done) => {
       const config = createWebpackConfig([
         new HtmlWebpackPlugin({
