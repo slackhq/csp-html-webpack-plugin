@@ -81,6 +81,9 @@ class CspHtmlWebpackPlugin {
     // the additional options that this plugin allows
     this.opts = Object.freeze({ ...defaultAdditionalOpts, ...additionalOpts });
 
+    // the calculated hashes for each file, indexed by filename
+    this.hashes = {};
+
     // valid hashes from https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#Sources
     if (!['sha256', 'sha384', 'sha512'].includes(this.opts.hashingMethod)) {
       throw new Error(
@@ -263,6 +266,19 @@ class CspHtmlWebpackPlugin {
   }
 
   /**
+   * Gets the hash of a file that is a webpack asset, storing the hash in a cache.
+   * @param assets
+   * @param {string} filename
+   * @returns {string}
+   */
+  hashFile(assets, filename) {
+    if (!Object.prototype.hasOwnProperty.call(this.hashes, filename)) {
+      this.hashes[filename] = this.hash(assets[filename].source());
+    }
+    return this.hashes[filename];
+  }
+
+  /**
    * Calculates shas of the policy / selector we define
    * @param {object} $ - the Cheerio instance
    * @param {string} policyName - one of 'script-src' and 'style-src'
@@ -345,12 +361,12 @@ class CspHtmlWebpackPlugin {
       .filter((filename) =>
         includedScripts.includes(path.join(this.publicPath, filename))
       )
-      .map((filename) => this.hash(compilation.assets[filename].source()));
+      .map((filename) => this.hashFile(compilation.assets, filename));
     const linkedStyleShas = this.styleFilesToHash
       .filter((filename) =>
         includedStyles.includes(path.join(this.publicPath, filename))
       )
-      .map((filename) => this.hash(compilation.assets[filename].source()));
+      .map((filename) => this.hashFile(compilation.assets, filename));
 
     const builtPolicy = this.buildPolicy({
       ...this.policy,
@@ -396,6 +412,45 @@ class CspHtmlWebpackPlugin {
   }
 
   /**
+   * Remove the public path from a URL, if present
+   * @param publicPath
+   * @param {string} path
+   * @returns {string}
+   */
+  getFilename(publicPath, path) {
+    if (!publicPath || !path.startsWith(publicPath)) {
+      return path;
+    }
+    return path.substr(publicPath.length);
+  }
+
+  /**
+   * Add integrity attributes to asset tags
+   * @param compilation
+   * @param htmlPluginData
+   * @param compileCb
+   */
+  addIntegrityAttributes(compilation, htmlPluginData, compileCb) {
+    if (this.hashEnabled['script-src'] !== false) {
+      htmlPluginData.assetTags.scripts.filter(tag => tag.attributes.src).forEach(tag => {
+        const filename = this.getFilename(compilation.options.output.publicPath, tag.attributes.src);
+        if (filename in compilation.assets) {
+          tag.attributes.integrity = this.hashFile(compilation.assets, filename).slice(1, -1);
+        }
+      });
+    }
+    if (this.hashEnabled['style-src'] !== false) {
+      htmlPluginData.assetTags.styles.filter(tag => tag.attributes.href).forEach(tag => {
+        const filename = this.getFilename(compilation.options.output.publicPath, tag.attributes.href);
+        if (filename in compilation.assets) {
+          tag.attributes.integrity = this.hashFile(compilation.assets, filename).slice(1, -1);
+        }
+      });
+    }
+    return compileCb(null, htmlPluginData);
+  }
+
+  /**
    * Hooks into webpack to collect assets and hash them, build the policy, and add it into our HTML template
    * @param compiler
    */
@@ -413,6 +468,10 @@ class CspHtmlWebpackPlugin {
         'CspHtmlWebpackPlugin',
         this.getFilesToHash.bind(this)
       );
+      HtmlWebpackPlugin.getHooks(compilation).alterAssetTags.tapAsync(
+        'CspHtmlWebpackPlugin',
+        this.addIntegrityAttributes.bind(this, compilation)
+      )
     });
   }
 }

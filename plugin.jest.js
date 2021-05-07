@@ -543,6 +543,102 @@ describe('CspHtmlWebpackPlugin', () => {
     });
   });
 
+  describe('Adding integrity attribute', () => {
+    it('adds an integrity attribute to linked scripts and styles', (done) => {
+      const config = createWebpackConfig(
+        [
+          new HtmlWebpackPlugin({
+            filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
+            template: path.join(
+              __dirname,
+              'test-utils',
+              'fixtures',
+              'external-scripts-styles.html'
+            ),
+          }),
+          new MiniCssExtractPlugin(),
+          new CspHtmlWebpackPlugin(),
+        ],
+        undefined,
+        'index-styled.js',
+        {
+          module: {
+            rules: [
+              {
+                test: /\.css$/,
+                use: [MiniCssExtractPlugin.loader, 'css-loader'],
+              },
+            ],
+          },
+        }
+      );
+
+      webpackCompile(config, (_, html) => {
+        const scripts = html['index.html']('script[src]');
+        const styles = html['index.html']('link[rel="stylesheet"]');
+
+        scripts.each((i, script) => {
+          if (!script.attribs.src.startsWith('http')) {
+            expect(script.attribs.integrity).toEqual("sha256-IDmpTcnLo5Niek0rbHm9EEQtYiqYHApvDU+Rta9RdVU=");
+          } else {
+            expect(script.attribs.integrity).toBeUndefined();
+          }
+        })
+        styles.each((i, style) => {
+          if (!style.attribs.href.startsWith('http')) {
+            expect(style.attribs.integrity).toEqual("sha256-bFK7QzTObijstzDDaq2yN82QIYcoYx/EDD87NWCGiPw=");
+          } else {
+            expect(style.attribs.integrity).toBeUndefined();
+          }
+        });
+        done();
+      });
+    });
+
+    it('does not add an integrity attribute to inline scripts or styles', (done) => {
+      const config = createWebpackConfig(
+        [
+          new HtmlWebpackPlugin({
+            filename: path.join(WEBPACK_OUTPUT_DIR, 'index.html'),
+            template: path.join(
+              __dirname,
+              'test-utils',
+              'fixtures',
+              'with-script-and-style.html'
+            ),
+          }),
+          new MiniCssExtractPlugin(),
+          new CspHtmlWebpackPlugin(),
+        ],
+        undefined,
+        'index-styled.js',
+        {
+          module: {
+            rules: [
+              {
+                test: /\.css$/,
+                use: [MiniCssExtractPlugin.loader, 'css-loader'],
+              },
+            ],
+          },
+        }
+      );
+
+      webpackCompile(config, (_, html) => {
+        const scripts = html['index.html']('script:not([src])');
+        const styles = html['index.html']('style');
+
+        scripts.each((i, script) => {
+          expect(script.attribs.integrity).toBeUndefined();
+        })
+        styles.each((i, style) => {
+          expect(style.attribs.integrity).toBeUndefined();
+        });
+        done();
+      });
+    });
+  });
+
   describe('Hash / Nonce enabled check', () => {
     it("doesn't add hashes to any policy rule if that policy rule has been globally disabled", (done) => {
       const config = createWebpackConfig([
