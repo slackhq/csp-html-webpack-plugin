@@ -431,6 +431,9 @@ class CspHtmlWebpackPlugin {
    * @param compileCb
    */
   addIntegrityAttributes(compilation, htmlPluginData, compileCb) {
+    if (!this.isEnabled(htmlPluginData)) {
+      return compileCb(null, htmlPluginData);
+    }
     if (this.hashEnabled['script-src'] !== false) {
       htmlPluginData.assetTags.scripts
         .filter((tag) => tag.attributes.src)

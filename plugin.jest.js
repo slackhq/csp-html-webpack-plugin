@@ -872,6 +872,7 @@ describe('CspHtmlWebpackPlugin', () => {
       webpackCompile(config, (csps, selectors) => {
         expect(csps['index.html']).toBeUndefined();
         expect(selectors['index.html']('meta').length).toEqual(1);
+        expect(selectors['index.html']('[integrity]').length).toEqual(0);
         done();
       });
     });
@@ -896,6 +897,7 @@ describe('CspHtmlWebpackPlugin', () => {
       webpackCompile(config, (csps, selectors) => {
         expect(csps['index.html']).toBeUndefined();
         expect(selectors['index.html']('meta').length).toEqual(1);
+        expect(selectors['index.html']('[integrity]').length).toEqual(0);
         done();
       });
     });
@@ -922,6 +924,7 @@ describe('CspHtmlWebpackPlugin', () => {
       webpackCompile(config, (csps, selectors) => {
         expect(csps['index.html']).toBeUndefined();
         expect(selectors['index.html']('meta').length).toEqual(1);
+        expect(selectors['index.html']('[integrity]').length).toEqual(0);
         done();
       });
     });
@@ -957,6 +960,12 @@ describe('CspHtmlWebpackPlugin', () => {
         expect(csps['index-disabled.html']).toBeUndefined();
         expect(selectors['index-enabled.html']('meta').length).toEqual(2);
         expect(selectors['index-disabled.html']('meta').length).toEqual(1);
+        expect(selectors['index-enabled.html']('[integrity]').length).toEqual(
+          1
+        );
+        expect(selectors['index-disabled.html']('[integrity]').length).toEqual(
+          0
+        );
         done();
       });
     });
