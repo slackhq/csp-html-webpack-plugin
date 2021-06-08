@@ -324,7 +324,11 @@ class CspHtmlWebpackPlugin {
     }
 
     // get all nonces for script and style tags
-    const scriptNonce = this.setNonce($, 'script-src', 'script[src]');
+    const scriptNonce = this.setNonce(
+      $,
+      'script-src',
+      'script[src], link[rel="preload"][as="script"]'
+    );
     const styleNonce = this.setNonce($, 'style-src', 'link[rel="stylesheet"]');
 
     // get all shas for script and style tags
