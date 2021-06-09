@@ -5,6 +5,7 @@ const compact = require('lodash/compact');
 const flatten = require('lodash/flatten');
 const isFunction = require('lodash/isFunction');
 const get = require('lodash/get');
+const path = require('path');
 
 // Attempt to load HtmlWebpackPlugin@4
 // Borrowed from https://github.com/waysact/webpack-subresource-integrity/blob/master/index.js
@@ -18,6 +19,19 @@ try {
     throw e;
   }
 }
+
+/**
+ * Remove the public path from a URL, if present
+ * @param publicPath
+ * @param {string} filePath
+ * @returns {string}
+ */
+const getFilename = (publicPath, filePath) => {
+  if (!publicPath || !filePath.startsWith(publicPath)) {
+    return filePath;
+  }
+  return filePath.substr(publicPath.length);
+};
 
 /**
  * The default function for adding the CSP to the head of a document
@@ -79,6 +93,9 @@ class CspHtmlWebpackPlugin {
 
     // the additional options that this plugin allows
     this.opts = Object.freeze({ ...defaultAdditionalOpts, ...additionalOpts });
+
+    // the calculated hashes for each file, indexed by filename
+    this.hashes = {};
 
     // valid hashes from https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#Sources
     if (!['sha256', 'sha384', 'sha512'].includes(this.opts.hashingMethod)) {
@@ -262,6 +279,19 @@ class CspHtmlWebpackPlugin {
   }
 
   /**
+   * Gets the hash of a file that is a webpack asset, storing the hash in a cache.
+   * @param assets
+   * @param {string} filename
+   * @returns {string}
+   */
+  hashFile(assets, filename) {
+    if (!Object.prototype.hasOwnProperty.call(this.hashes, filename)) {
+      this.hashes[filename] = this.hash(assets[filename].source());
+    }
+    return this.hashes[filename];
+  }
+
+  /**
    * Calculates shas of the policy / selector we define
    * @param {object} $ - the Cheerio instance
    * @param {string} policyName - one of 'script-src' and 'style-src'
@@ -323,28 +353,121 @@ class CspHtmlWebpackPlugin {
       return compileCb(null, htmlPluginData);
     }
 
-    // get all nonces for script and style tags
+    // get all nonces for linked script and style tags
     const scriptNonce = this.setNonce($, 'script-src', 'script[src]');
     const styleNonce = this.setNonce($, 'style-src', 'link[rel="stylesheet"]');
 
-    // get all shas for script and style tags
+    // get all shas for inline script and style tags
     const scriptShas = this.getShas($, 'script-src', 'script:not([src])');
     const styleShas = this.getShas($, 'style-src', 'style:not([href])');
+
+    // find scripts and styles that were linked to in this HtmlWebpackPlugin instance's output
+    const includedScripts = $('script[src]')
+      .map((i, element) => $(element).attr('src'))
+      .get();
+    const includedStyles = $('link[rel="stylesheet"]')
+      .map((i, element) => $(element).attr('href'))
+      .get();
+
+    // get all the shas for scripts and styles generated and linked to by this HtmlWebpackPlugin instance
+    const linkedScriptShas = this.scriptFilesToHash
+      .filter((filename) =>
+        includedScripts.includes(path.join(this.publicPath, filename))
+      )
+      .map((filename) => this.hashFile(compilation.assets, filename));
+    const linkedStyleShas = this.styleFilesToHash
+      .filter((filename) =>
+        includedStyles.includes(path.join(this.publicPath, filename))
+      )
+      .map((filename) => this.hashFile(compilation.assets, filename));
 
     const builtPolicy = this.buildPolicy({
       ...this.policy,
       'script-src': flatten([this.policy['script-src']]).concat(
         scriptShas,
+        linkedScriptShas,
         scriptNonce
       ),
       'style-src': flatten([this.policy['style-src']]).concat(
         styleShas,
+        linkedStyleShas,
         styleNonce
       ),
     });
 
     this.processFn(builtPolicy, htmlPluginData, $, compilation);
 
+    return compileCb(null, htmlPluginData);
+  }
+
+  /**
+   * Collect lists of files whose hashes could be included in the CSP
+   * @param htmlPluginData
+   * @param compileCb
+   */
+  getFilesToHash(htmlPluginData, compileCb) {
+    this.publicPath = htmlPluginData.assets.publicPath;
+    if (this.hashEnabled['script-src'] !== false) {
+      this.scriptFilesToHash = htmlPluginData.assets.js.map((filename) =>
+        path.relative(this.publicPath, filename)
+      );
+    } else {
+      this.scriptFilesToHash = [];
+    }
+    if (this.hashEnabled['style-src'] !== false) {
+      this.styleFilesToHash = htmlPluginData.assets.css.map((filename) =>
+        path.relative(this.publicPath, filename)
+      );
+    } else {
+      this.styleFilesToHash = [];
+    }
+    return compileCb(null, htmlPluginData);
+  }
+
+  /**
+   * Add integrity attributes to asset tags
+   * @param compilation
+   * @param htmlPluginData
+   * @param compileCb
+   */
+  addIntegrityAttributes(compilation, htmlPluginData, compileCb) {
+    if (!this.isEnabled(htmlPluginData)) {
+      return compileCb(null, htmlPluginData);
+    }
+    if (this.hashEnabled['script-src'] !== false) {
+      htmlPluginData.assetTags.scripts
+        .filter((tag) => tag.attributes.src)
+        .forEach((tag) => {
+          const filename = getFilename(
+            compilation.options.output.publicPath,
+            tag.attributes.src
+          );
+          if (filename in compilation.assets) {
+            // eslint-disable-next-line no-param-reassign
+            tag.attributes.integrity = this.hashFile(
+              compilation.assets,
+              filename
+            ).slice(1, -1);
+          }
+        });
+    }
+    if (this.hashEnabled['style-src'] !== false) {
+      htmlPluginData.assetTags.styles
+        .filter((tag) => tag.attributes.href)
+        .forEach((tag) => {
+          const filename = getFilename(
+            compilation.options.output.publicPath,
+            tag.attributes.href
+          );
+          if (filename in compilation.assets) {
+            // eslint-disable-next-line no-param-reassign
+            tag.attributes.integrity = this.hashFile(
+              compilation.assets,
+              filename
+            ).slice(1, -1);
+          }
+        });
+    }
     return compileCb(null, htmlPluginData);
   }
 
@@ -361,6 +484,14 @@ class CspHtmlWebpackPlugin {
       HtmlWebpackPlugin.getHooks(compilation).beforeEmit.tapAsync(
         'CspHtmlWebpackPlugin',
         this.processCsp.bind(this, compilation)
+      );
+      HtmlWebpackPlugin.getHooks(compilation).beforeAssetTagGeneration.tapAsync(
+        'CspHtmlWebpackPlugin',
+        this.getFilesToHash.bind(this)
+      );
+      HtmlWebpackPlugin.getHooks(compilation).alterAssetTags.tapAsync(
+        'CspHtmlWebpackPlugin',
+        this.addIntegrityAttributes.bind(this, compilation)
       );
     });
   }

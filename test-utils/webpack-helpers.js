@@ -72,18 +72,26 @@ function webpackCompile(
  * Helper to create a basic webpack config which can then be used in the compile function
  * @param plugins[] - array of plugins to pass into webpack
  * @param {string} publicPath - publicPath setting for webpack
+ * @param {string} entry - filename of the entrypoint to use
+ * @param {Object} extraWebpackConfig - extra config to pass to webpack
  * @return {{mode: string, output: {path: string, filename: string}, entry: string, plugins: *}}
  */
-function createWebpackConfig(plugins, publicPath = undefined) {
+function createWebpackConfig(
+  plugins,
+  publicPath = undefined,
+  entry = 'index.js',
+  extraWebpackConfig = {}
+) {
   return {
     mode: 'none',
-    entry: path.join(__dirname, '..', 'test-utils', 'fixtures', 'index.js'),
+    entry: path.join(__dirname, '..', 'test-utils', 'fixtures', entry),
     output: {
       path: WEBPACK_OUTPUT_DIR,
       publicPath,
       filename: 'index.bundle.js',
     },
     plugins,
+    ...extraWebpackConfig,
   };
 }
 
