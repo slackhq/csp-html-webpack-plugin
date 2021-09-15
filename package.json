@@ -9,7 +9,7 @@
     "jest": "jest --config=./jest.config.js plugin.jest.js",
     "jest:watch": "jest --watch --verbose=false --config=./jest.config.js plugin.jest.js",
     "jest:coverage:generate": "jest --coverage --config=./jest.config.js plugin.jest.js",
-    "jest:coverage:clean": "rm -rf ./coverage",
+    "jest:coverage:clean": "rimraf ./coverage",
     "jest:coverage:upload": "npx codecov",
     "jest:coverage": "npm run jest:coverage:clean && npm run jest:coverage:generate && npm run jest:coverage:upload",
     "test": "npm run eslint && npm run jest && npm run jest:coverage"
@@ -48,6 +48,7 @@
     "jest": "^26.6.3",
     "memory-fs": "^0.5.0",
     "prettier": "^2.2.1",
+    "rimraf": "^3.0.2",
     "webpack": "^5.10.1",
     "webpack-sources": "^2.2.0"
   }
