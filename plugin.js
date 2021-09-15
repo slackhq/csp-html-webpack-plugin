@@ -46,6 +46,17 @@ const defaultProcessFn = (builtPolicy, htmlPluginData, $) => {
     : $.html();
 };
 
+const convert = (keys, value) =>
+  typeof value !== 'boolean'
+    ? value
+    : keys.reduce(
+        (previousValue, currentValue) => ({
+          ...previousValue,
+          [currentValue]: value,
+        }),
+        {}
+      );
+
 const defaultPolicy = {
   'base-uri': "'self'",
   'object-src': "'none'",
@@ -56,14 +67,8 @@ const defaultPolicy = {
 const defaultAdditionalOpts = {
   enabled: true,
   hashingMethod: 'sha256',
-  hashEnabled: {
-    'script-src': true,
-    'style-src': true,
-  },
-  nonceEnabled: {
-    'script-src': true,
-    'style-src': true,
-  },
+  hashEnabled: true,
+  nonceEnabled: true,
   processFn: defaultProcessFn,
 };
 
@@ -112,14 +117,22 @@ class CspHtmlWebpackPlugin {
     this.validatePolicy(compilation);
 
     // 2. Lets set which hashes and nonces are enabled for this HtmlWebpackPlugin instance
+    const policyKeys = Object.keys(this.policy);
+
     this.hashEnabled = Object.freeze({
-      ...this.opts.hashEnabled,
-      ...get(htmlPluginData, 'plugin.options.cspPlugin.hashEnabled', {}),
+      ...convert(policyKeys, this.opts.hashEnabled),
+      ...convert(
+        policyKeys,
+        get(htmlPluginData, 'plugin.options.cspPlugin.hashEnabled', {})
+      ),
     });
 
     this.nonceEnabled = Object.freeze({
-      ...this.opts.nonceEnabled,
-      ...get(htmlPluginData, 'plugin.options.cspPlugin.nonceEnabled', {}),
+      ...convert(policyKeys, this.opts.nonceEnabled),
+      ...convert(
+        policyKeys,
+        get(htmlPluginData, 'plugin.options.cspPlugin.nonceEnabled', {})
+      ),
     });
 
     // 3. Get the processFn for this HtmlWebpackPlugin instance.
