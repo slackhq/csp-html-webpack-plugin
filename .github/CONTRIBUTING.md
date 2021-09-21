@@ -32,7 +32,7 @@ There are many ways you can contribute! :heart:
 
 For your contribution to be accepted:
 
-- [x] You must have signed the [Contributor License Agreement (CLA)](https://cla-assistant.io/slackhq/hack-json-schema).
+- [x] You must have signed the [Contributor License Agreement (CLA)](https://cla-assistant.io/slackhq/csp-html-webpack-plugin).
 - [x] The test suite must be complete and pass.
 - [x] The changes must be approved by code review.
 - [x] Commits should be atomic and messages must be descriptive. Related issues should be mentioned by Issue number.
