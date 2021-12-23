@@ -65,6 +65,7 @@ const defaultAdditionalOpts = {
     'style-src': true,
   },
   processFn: defaultProcessFn,
+  upgradeInsecureRequests: false,
 };
 
 class CspHtmlWebpackPlugin {
@@ -286,24 +287,28 @@ class CspHtmlWebpackPlugin {
    */
   // eslint-disable-next-line class-methods-use-this
   buildPolicy(policyObj) {
-    return Object.keys(policyObj)
-      .map((key) => {
-        const val = Array.isArray(policyObj[key])
-          ? compact(uniq(policyObj[key])).join(' ')
-          : policyObj[key];
+    const policy = Object.keys(policyObj).map((key) => {
+      const val = Array.isArray(policyObj[key])
+        ? compact(uniq(policyObj[key])).join(' ')
+        : policyObj[key];
 
-        // move strict dynamic to the end of the policy if it exists to be backwards compatible with csp2
-        // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#strict-dynamic
-        if (val.includes("'strict-dynamic'")) {
-          const newVal = `${val
-            .replace(/\s?'strict-dynamic'\s?/gi, ' ')
-            .trim()} 'strict-dynamic'`;
-          return `${key} ${newVal}`;
-        }
+      // move strict dynamic to the end of the policy if it exists to be backwards compatible with csp2
+      // https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/script-src#strict-dynamic
+      if (val.includes("'strict-dynamic'")) {
+        const newVal = `${val
+          .replace(/\s?'strict-dynamic'\s?/gi, ' ')
+          .trim()} 'strict-dynamic'`;
+        return `${key} ${newVal}`;
+      }
 
-        return `${key} ${val}`;
-      })
-      .join('; ');
+      return `${key} ${val}`;
+    });
+
+    if (this.opts.upgradeInsecureRequests) {
+      policy.push('upgrade-insecure-requests');
+    }
+
+    return policy.join('; ');
   }
 
   /**

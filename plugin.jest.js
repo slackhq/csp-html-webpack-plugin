@@ -155,13 +155,18 @@ describe('CspHtmlWebpackPlugin', () => {
             'with-nothing.html'
           ),
         }),
-        new CspHtmlWebpackPlugin({
-          'base-uri': ["'self'", 'https://slack.com'],
-          'font-src': ["'self'", "'https://a-slack-edge.com'"],
-          'script-src': ["'self'"],
-          'style-src': ["'self'"],
-          'connect-src': ["'self'"],
-        }),
+        new CspHtmlWebpackPlugin(
+          {
+            'base-uri': ["'self'", 'https://slack.com'],
+            'font-src': ["'self'", "'https://a-slack-edge.com'"],
+            'script-src': ["'self'"],
+            'style-src': ["'self'"],
+            'connect-src': ["'self'"],
+          },
+          {
+            upgradeInsecureRequests: true,
+          }
+        ),
       ]);
 
       webpackCompile(config, (csps) => {
@@ -171,7 +176,8 @@ describe('CspHtmlWebpackPlugin', () => {
           " script-src 'self' 'nonce-mockedbase64string-1';" +
           " style-src 'self';" +
           " font-src 'self' 'https://a-slack-edge.com';" +
-          " connect-src 'self'";
+          " connect-src 'self';" +
+          ' upgrade-insecure-requests';
 
         expect(csps['index.html']).toEqual(expected);
         done();

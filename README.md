@@ -91,6 +91,7 @@ This `CspHtmlWebpackPlugin` accepts 2 params with the following structure:
       - `htmlPluginData`: the `HtmlWebpackPlugin` `object`;
       - `$`: the `cheerio` object of the html file currently being processed
       - `compilation`: Internal webpack object to manipulate the build
+  - `{boolean}` upgradeInsecureRequests - if true, `upgrade-insecure-requests` will be added to the CSP tag.
 
 ### `HtmlWebpackPlugin`
 
@@ -107,6 +108,7 @@ The plugin also adds a new config option onto each `HtmlWebpackPlugin` instance:
       - `htmlPluginData`: the `HtmlWebpackPlugin` `object`;
       - `$`: the `cheerio` object of the html file currently being processed
       - `compilation`: Internal webpack object to manipulate the build
+  - `{boolean}` upgradeInsecureRequests - if true, [upgrade-insecure-requests](https://developer.mozilla.org/en-US/docs/Web/HTTP/Headers/Content-Security-Policy/upgrade-insecure-requests) will be added to the CSP tag.
 
 ### Order of Precedence:
 
@@ -150,7 +152,8 @@ In the case where a config object is defined in multiple places, it will be merg
     'script-src': true,
     'style-src': true
   },
-  processFn: defaultProcessFn
+  processFn: defaultProcessFn,
+  upgradeInsecureRequests: false
 }
 ```
 
@@ -174,7 +177,8 @@ new HtmlWebpackPlugin({
       'script-src': true,
       'style-src': true
     },
-    processFn: defaultProcessFn  // defined in the plugin itself
+    processFn: defaultProcessFn,  // defined in the plugin itself
+    upgradeInsecureRequests: false
   }
 });
 
@@ -194,7 +198,8 @@ new CspHtmlWebpackPlugin({
     'script-src': true,
     'style-src': true
   },
-  processFn: defaultProcessFn  // defined in the plugin itself
+  processFn: defaultProcessFn,  // defined in the plugin itself
+  upgradeInsecureRequests: false
 })
 ```
 ## Advanced Usage
