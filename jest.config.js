@@ -1,7 +1,7 @@
 module.exports = {
   displayName: 'CspHtmlWebpackPlugin',
   roots: ['<rootDir>'],
-  testMatch: ['<rootDir>/?(*.)jest.js'],
+  testMatch: ['**/*.jest.js'],
   testPathIgnorePatterns: ['/node_modules/'],
   clearMocks: true,
 };
