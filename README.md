@@ -83,8 +83,8 @@ This `CspHtmlWebpackPlugin` accepts 2 params with the following structure:
     - The `htmlPluginData` is passed into the function as it's first param.
     - If `enabled` is set the false, it will disable generating a CSP for all instances of `HtmlWebpackPlugin` in your webpack config.
   - `{string}` hashingMethod - accepts 'sha256', 'sha384', 'sha512' - your node version must also accept this hashing method.
-  - `{object}` hashEnabled - a `<string, boolean>` entry for which policy rules are allowed to include hashes
-  - `{object}` nonceEnabled - a `<string, boolean>` entry for which policy rules are allowed to include nonces
+  - `{boolean|object}` hashEnabled - a `<string, boolean>` entry for which policy rules are allowed to include hashes, or a single boolean value to apply to all policy rules
+  - `{boolean|object}` nonceEnabled - a `<string, boolean>` entry for which policy rules are allowed to include nonces, or a single boolean value to apply to all policy rules
   - `{Function}` processFn - allows the developer to overwrite the default method of what happens to the CSP after it has been created
     - Parameters are:
       - `builtPolicy`: a `string` containing the completed policy;
